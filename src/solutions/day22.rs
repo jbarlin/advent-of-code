@@ -1,10 +1,11 @@
 use crate::AoCDay;
-use std::collections::hash_map::DefaultHasher;
-use std::collections::BTreeSet;
+use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::collections::VecDeque;
-use std::hash::{Hash, Hasher};
 
 pub struct Code;
+
+type Deck = VecDeque<u8>;
 
 impl AoCDay for Code {
     fn part1(&self, input: &mut dyn std::io::Read, _extra_argss: &[String]) -> String {
@@ -13,13 +14,12 @@ impl AoCDay for Code {
         let _size = input.read_to_string(&mut file_content);
         //Use helper functions (see below) - these make it easier to unit test (see the bottom of the page!)
         let (mut p1, mut p2) = parse_file_to_vecs(file_content);
-        play_all_nonrec_rounds(&mut p1, &mut p2);
+        let winner = play_all_nonrec_rounds(&mut p1, &mut p2);
         //OK, we don't know or care who the winner is? Just need the final score
-        if p1.is_empty() {
-            return score_deck(p2).to_string();
-        } else {
-            return score_deck(p1).to_string();
-        }
+        return match winner {
+            Winner::P1 => score_deck(p1).to_string(),
+            Winner::P2 => score_deck(p2).to_string(),
+        };
     }
 
     fn part2(&self, input: &mut dyn std::io::Read, _extra_args: &[String]) -> String {
@@ -28,26 +28,28 @@ impl AoCDay for Code {
         let _size = input.read_to_string(&mut file_content);
         //Use helper functions (see below) - these make it easier to unit test (see the bottom of the page!)
         let (mut p1, mut p2) = parse_file_to_vecs(file_content);
-        let mut seen: BTreeSet<u64> = BTreeSet::new();
-        play_all_rec_rounds(&mut p1, &mut p2, &mut seen);
-        if p1.is_empty() {
-            println!("2: {:?}", p2);
-            return score_deck(p2).to_string();
-        } else {
-            println!("1: {:?}", p1);
-            return score_deck(p1).to_string();
-        }
+        let winner = play_all_rec_rounds(&mut p1, &mut p2);
+        //Again, don't care who, just that
+        return match winner {
+            Winner::P1 => score_deck(p1).to_string(),
+            Winner::P2 => score_deck(p2).to_string(),
+        };
     }
+}
+
+enum Winner {
+    P1,
+    P2,
 }
 
 /**
  * Helper function to parse a given string (the file contents) into the appropriate vectors
  */
-fn parse_file_to_vecs(file_content: String) -> (VecDeque<u8>, VecDeque<u8>) {
+fn parse_file_to_vecs(file_content: String) -> (Deck, Deck) {
     //Need to use nightly to run split_once as it's unstable in stable (???)
     let (player1, player2) = file_content.split_once("\n\n").unwrap();
     //Get all p1 cards
-    let p1cards: VecDeque<u8> = player1
+    let p1cards: Deck = player1
         //Automatically split by line
         .lines()
         //The first one seems to say "Player1" so skip that
@@ -57,7 +59,7 @@ fn parse_file_to_vecs(file_content: String) -> (VecDeque<u8>, VecDeque<u8>) {
         //Get all the numbers as a vec
         .collect();
     //Repeat for p2cards
-    let p2cards: VecDeque<u8> = player2
+    let p2cards: Deck = player2
         .lines()
         .skip(1)
         .map(|lc| lc.parse().unwrap())
@@ -66,239 +68,173 @@ fn parse_file_to_vecs(file_content: String) -> (VecDeque<u8>, VecDeque<u8>) {
 }
 
 /**
- * Helper function to play one round of the game.
+ * Helper function for comparing cards
  */
-fn play_nonrec_round(p1cards: &mut VecDeque<u8>, p2cards: &mut VecDeque<u8>) {
-    let card1 = p1cards.pop_front().unwrap();
-    let card2 = p2cards.pop_front().unwrap();
-    if card1 == card2 {
-        panic!("Not mentioned in docs, so assume should not occur!");
-    } else if card1 > card2 {
-        p1cards.push_back(card1);
-        p1cards.push_back(card2);
-    } else {
-        p2cards.push_back(card2);
-        p2cards.push_back(card1);
+fn compare_cards(p1: u8, p2: u8) -> Winner {
+    match p1.cmp(&p2) {
+        Ordering::Greater => Winner::P1,
+        Ordering::Less => Winner::P2,
+        Ordering::Equal => {
+            panic!("Not mentioned in docs, so assume should not occur!");
+        }
+    }
+}
+
+/**
+ * Helper function for working on the decks so I don't mess up
+ */
+fn apply_winner(p1deck: &mut Deck, p2deck: &mut Deck, p1card: u8, p2card: u8, winner: Winner) {
+    match winner {
+        Winner::P1 => {
+            p1deck.push_back(p1card);
+            p1deck.push_back(p2card);
+        }
+        Winner::P2 => {
+            p2deck.push_back(p2card);
+            p2deck.push_back(p1card);
+        }
     }
 }
 
 /**
  * Helper function to play all rounds of the game
  */
-fn play_all_nonrec_rounds(p1cards: &mut VecDeque<u8>, p2cards: &mut VecDeque<u8>) {
+fn play_all_nonrec_rounds(p1cards: &mut Deck, p2cards: &mut Deck) -> Winner {
     while !p1cards.is_empty() && !p2cards.is_empty() {
-        play_nonrec_round(p1cards, p2cards);
+        let card1 = p1cards.pop_front().unwrap();
+        let card2 = p2cards.pop_front().unwrap();
+        apply_winner(p1cards, p2cards, card1, card2, compare_cards(card1, card2))
     }
+    return if p2cards.is_empty() {
+        Winner::P1
+    } else {
+        Winner::P2
+    };
+}
+
+/**
+ * Helper function to play rec rounds
+ */
+fn play_all_rec_rounds(p1cards: &mut Deck, p2cards: &mut Deck) -> Winner {
+    let mut seen_decks_p1: HashSet<Deck> = HashSet::new();
+    let mut seen_decks_p2: HashSet<Deck> = HashSet::new();
+    while !p1cards.is_empty() && !p2cards.is_empty() {
+        if !seen_decks_p1.insert(p1cards.clone()) && !seen_decks_p2.insert(p2cards.clone()) {
+            return Winner::P1;
+        }
+        let card1 = p1cards.pop_front().unwrap();
+        let card2 = p2cards.pop_front().unwrap();
+        if p1cards.len() >= card1 as usize && p2cards.len() >= card2 as usize {
+            let mut new_p1: Deck = p1cards.iter().take(card1 as usize).cloned().collect();
+            let mut new_p2: Deck = p2cards.iter().take(card2 as usize).cloned().collect();
+            let winner = play_all_rec_rounds(&mut new_p1, &mut new_p2);
+            apply_winner(p1cards, p2cards, card1, card2, winner);
+        } else {
+            apply_winner(p1cards, p2cards, card1, card2, compare_cards(card1, card2))
+        }
+    }
+    return if p2cards.is_empty() {
+        Winner::P1
+    } else {
+        Winner::P2
+    };
 }
 
 /**
  * Helper function to score a deck!
  */
-fn score_deck(deck: VecDeque<u8>) -> usize {
+fn score_deck(deck: Deck) -> usize {
     //OK, I have a deck... reverse, zip with positions (enumerate? Is that what rust calls it?), and then multiply, then sum?
     return deck
         .into_iter()
         .rev()
         .enumerate()
-        .fold(0, |acc, (index, value)| acc + (index + 1) * (value as usize));
-}
-
-/// All possible recursive game results
-enum RecursiveTypes {
-    ///We've done this game before, don't do it again
-    InfinityBreak,
-    ///We are able to make a sub game
-    SubGame,
-    ///EITHER of P1 or P2 didn't have enough cards. Use the bool to denote if the winner is P1 (true) or P2 (false)
-    NotEnough(bool),
-}
-/**
- * Helper function to determine what type of recursive round we are looking at
- */
-fn determine_rec_round_type(
-    p1cards: &mut VecDeque<u8>,
-    p2cards: &mut VecDeque<u8>,
-    seen_hands: &mut BTreeSet<u64>,
-) -> RecursiveTypes {
-    let mut hasher = DefaultHasher::new();
-    //TODO: see if there is a way to avoid the clone here... Memory!
-    //Create the tuple for checking seen hand configs
-    if false{
-        let tpl = (p1cards.clone(), p2cards.clone());
-        tpl.hash(&mut hasher);
-    }else{
-        //See https://dev.to/neilgall/comment/19fh4
-        p1cards.hash(&mut hasher);
-        //p2cards.hash(&mut hasher);
-    }
-    let hash = hasher.finish();
-    //Have we seen it?
-    if p1cards.is_empty() || p2cards.is_empty() {
-        panic!("Don't pass empty vecs to me!!!")
-    } else if seen_hands.contains(&hash) {
-        //Yes, infinity break time!
-        return RecursiveTypes::InfinityBreak;
-    } else {
-        //No, then add it and work out what we are doing!
-        seen_hands.insert(hash);
-        let &card1 = p1cards.front().unwrap();
-        let &card2 = p2cards.front().unwrap();
-        if ((p1cards.len()) > card1.into()) && ((p2cards.len()) > card2.into()) {
-            return RecursiveTypes::SubGame;
-        } else if card1 > card2 {
-            return RecursiveTypes::NotEnough(true);
-        } else if card1 == card2 {
-            panic!("We have no instructions for the same card!")
-        } else {
-            return RecursiveTypes::NotEnough(false);
-        }
-    }
-}
-
-/**
- * Helper functions - not for testing but so I don't get caught making the cards go the wrong way (also DRY)
- * Used in recursive version
- * Compiler will probably inline
- */
-fn p1wins_rec(p1cards: &mut VecDeque<u8>, p2cards: &mut VecDeque<u8>) {
-    let card1 = p1cards.pop_front().unwrap();
-    let card2 = p2cards.pop_front().unwrap();
-    //
-    p1cards.push_back(card1);
-    p1cards.push_back(card2);
-}
-fn p2wins_rec(p1cards: &mut VecDeque<u8>, p2cards: &mut VecDeque<u8>) {
-    let card1 = p1cards.pop_front().unwrap();
-    let card2 = p2cards.pop_front().unwrap();
-    //Push these the correct way around since 2 won!
-    p2cards.push_back(card2);
-    p2cards.push_back(card1);
-}
-
-/// Return true if winner is P1, return false if winner is P2!
-fn play_all_rec_rounds(
-    p1cards: &mut VecDeque<u8>,
-    p2cards: &mut VecDeque<u8>,
-    seen: &mut BTreeSet<u64>,
-) -> bool {
-    //OK, let's loop!
-    while (!p1cards.is_empty()) && (!p2cards.is_empty()) {
-        let result: RecursiveTypes = determine_rec_round_type(p1cards, p2cards, seen);
-        match result {
-            RecursiveTypes::InfinityBreak => p1wins_rec(p1cards, p2cards),
-            RecursiveTypes::NotEnough(true) => p1wins_rec(p1cards, p2cards),
-            RecursiveTypes::NotEnough(false) => p2wins_rec(p1cards, p2cards),
-            RecursiveTypes::SubGame => {
-                //OK, play a sub game and go from there!
-                let &card1 = p1cards.front().unwrap();
-                let &card2 = p2cards.front().unwrap();
-                //Now we play with the next card1 cards of p1cards, and card2 cards of part2
-                //And then the winner is determined from there!
-                let mut new_p1 = p1cards.range(1..card1.into()).copied().collect::<VecDeque<_>>();
-                let mut new_p2 = p2cards.range(1..card2.into()).copied().collect::<VecDeque<_>>();
-                if play_all_rec_rounds(&mut new_p1, &mut new_p2, seen) {
-                    p1wins_rec(p1cards, p2cards)
-                } else {
-                    p2wins_rec(p1cards, p2cards)
-                }
-            }
-        }
-    }
-    //If p2 cards is empty, then p1 wins (true), otherwise p2 wins (false)
-    return p2cards.is_empty();
+        .fold(0, |acc, (index, value)| {
+            acc + (index + 1) * (value as usize)
+        });
 }
 
 #[cfg(test)]
 mod tests_part_2 {
     use super::*;
-
     #[test]
-    fn test_rec_type_calc() {
-        //OK, test all 4 known valid scenarios
-        let mut p1a: VecDeque<u8> = VecDeque::with_capacity(1);
-        let mut p2a: VecDeque<u8> = VecDeque::with_capacity(1);
-        let mut seen: BTreeSet<u64> = BTreeSet::new();
-        p1a.push_front(1);
-        p2a.push_front(2);
-        //First time should yeild NotEnoughSoP2
-        assert!(matches!(
-            determine_rec_round_type(&mut p1a, &mut p2a, &mut seen),
-            RecursiveTypes::NotEnough(false)
-        ));
-        //If we try the same thing again, we should get a result of InfinityBreak
-        assert_eq!(seen.len(), 1);
-        assert!(matches!(
-            determine_rec_round_type(&mut p1a, &mut p2a, &mut seen),
-            RecursiveTypes::InfinityBreak
-        ));
-        //OK, try and do the reverse this time and should get P2 (just swap args so labelling is iffy but this is a hackjob!)
-        let res = determine_rec_round_type(&mut p2a, &mut p1a, &mut seen);
-        assert!(matches!(res, RecursiveTypes::NotEnough(true)));
-        //Again, repeat = InfinityBreak
-        assert_eq!(seen.len(), 2);
-        assert!(matches!(
-            determine_rec_round_type(&mut p2a, &mut p1a, &mut seen),
-            RecursiveTypes::InfinityBreak
-        ));
-    }
-
-    #[test]
-    fn test_play_all_rec_rounds() {
+    fn test_example_rec_rounds() {
         let file_conts = include_str!("../../inputs/d22-test").to_string();
         let (mut p1, mut p2) = parse_file_to_vecs(file_conts);
-        let mut seen: BTreeSet<u64> = BTreeSet::new();
-        assert_eq!(play_all_rec_rounds(&mut p1, &mut p2, &mut seen), false);
-        // I should be able to test the vecs themselves too!
-        //1 Should be empty
-        assert_eq!(p1.pop_front(), None);
-        //2 should be 7, 5, 6, 2, 4, 1, 10, 8, 9, 3
-        assert_eq!(p2.pop_front(), Some(7));
-        assert_eq!(p2.pop_front(), Some(5));
-        assert_eq!(p2.pop_front(), Some(6));
-        assert_eq!(p2.pop_front(), Some(2));
-        assert_eq!(p2.pop_front(), Some(4));
-        assert_eq!(p2.pop_front(), Some(1));
-        assert_eq!(p2.pop_front(), Some(10));
-        assert_eq!(p2.pop_front(), Some(8));
-        assert_eq!(p2.pop_front(), Some(9));
-        assert_eq!(p2.pop_front(), Some(3));
-        assert_eq!(p2.pop_front(), None)
-    }
-
-    #[test]
-    fn test_all_rec_score() {
-        let file_conts = include_str!("../../inputs/d22-test").to_string();
-        let (mut p1, mut p2) = parse_file_to_vecs(file_conts);
-        let mut seen: BTreeSet<u64> = BTreeSet::new();
-        assert_eq!(play_all_rec_rounds(&mut p1, &mut p2, &mut seen), false);
+        let winner = play_all_rec_rounds(&mut p1, &mut p2);
+        assert!(matches!(winner, Winner::P2));
         assert_eq!(score_deck(p2), 291);
-        assert_eq!(score_deck(p1), 0);
     }
 }
 
 #[cfg(test)]
 mod tests_part_1 {
+    use super::{parse_file_to_vecs, play_all_nonrec_rounds, Winner};
+
+    #[test]
+    fn test_example_all_rounds() {
+        let file_conts = include_str!("../../inputs/d22-test").to_string();
+        let (mut p1, mut p2) = parse_file_to_vecs(file_conts);
+        let winner = play_all_nonrec_rounds(&mut p1, &mut p2);
+        //Thankfully we have the answer from the page!
+        //Winner is p2
+        assert!(matches!(winner, Winner::P2));
+        //p1 should be empty!
+        assert_eq!(p1.pop_front(), None);
+        //And p2 should be 3, 2, 10, 6, 8, 5, 9, 4, 7, 1
+        assert_eq!(p2.pop_front(), Some(3));
+        assert_eq!(p2.pop_front(), Some(2));
+        assert_eq!(p2.pop_front(), Some(10));
+        assert_eq!(p2.pop_front(), Some(6));
+        assert_eq!(p2.pop_front(), Some(8));
+        assert_eq!(p2.pop_front(), Some(5));
+        assert_eq!(p2.pop_front(), Some(9));
+        assert_eq!(p2.pop_front(), Some(4));
+        assert_eq!(p2.pop_front(), Some(7));
+        assert_eq!(p2.pop_front(), Some(1));
+        assert_eq!(p2.pop_front(), None)
+    }
+}
+
+#[cfg(test)]
+mod tests_parts_both {
     use super::{
-        parse_file_to_vecs, play_all_nonrec_rounds, play_nonrec_round, score_deck, VecDeque,
+        apply_winner, compare_cards, parse_file_to_vecs, score_deck, Deck, VecDeque, Winner,
     };
+
+    /**
+     * Helper function to play one round of the core game.
+     */
+    fn play_round(p1cards: &mut Deck, p2cards: &mut Deck) {
+        let card1 = p1cards.pop_front().unwrap();
+        let card2 = p2cards.pop_front().unwrap();
+        apply_winner(p1cards, p2cards, card1, card2, compare_cards(card1, card2))
+    }
+
+    #[test]
+    fn test_scoring() {
+        //[3, 2, 10, 6, 8, 5, 9, 4, 7, 1]
+        let score_me: Deck = VecDeque::from(vec![3, 2, 10, 6, 8, 5, 9, 4, 7, 1]);
+        assert_eq!(score_deck(score_me), 306)
+    }
 
     #[test]
     fn test_simple_rounds() {
-        let mut p1a: VecDeque<u8> = VecDeque::with_capacity(2);
-        let mut p2a: VecDeque<u8> = VecDeque::with_capacity(2);
+        let mut p1a: Deck = VecDeque::with_capacity(2);
+        let mut p2a: Deck = VecDeque::with_capacity(2);
         p1a.push_front(1);
         p2a.push_front(2);
-        play_nonrec_round(&mut p1a, &mut p2a);
+        play_round(&mut p1a, &mut p2a);
         assert_eq!(p1a.pop_front(), None);
         assert_eq!(p2a.pop_front(), Some(2));
         assert_eq!(p2a.pop_front(), Some(1));
         assert_eq!(p2a.pop_front(), None);
         //OK, now try the other way around!
-        let mut p1b: VecDeque<u8> = VecDeque::with_capacity(2);
-        let mut p2b: VecDeque<u8> = VecDeque::with_capacity(2);
+        let mut p1b: Deck = VecDeque::with_capacity(2);
+        let mut p2b: Deck = VecDeque::with_capacity(2);
         p1b.push_front(9);
         p2b.push_front(5);
-        play_nonrec_round(&mut p1b, &mut p2b);
+        play_round(&mut p1b, &mut p2b);
         assert_eq!(p2b.pop_front(), None);
         assert_eq!(p1b.pop_front(), Some(9));
         assert_eq!(p1b.pop_front(), Some(5));
@@ -312,7 +248,7 @@ mod tests_part_1 {
         */
         let file_conts = include_str!("../../inputs/d22-test").to_string();
         let (mut p1, mut p2) = parse_file_to_vecs(file_conts);
-        play_nonrec_round(&mut p1, &mut p2);
+        play_round(&mut p1, &mut p2);
 
         //1
         assert_eq!(p1.pop_front(), Some(2));
@@ -338,8 +274,8 @@ mod tests_part_1 {
         */
         let file_conts = include_str!("../../inputs/d22-test").to_string();
         let (mut p1, mut p2) = parse_file_to_vecs(file_conts);
-        play_nonrec_round(&mut p1, &mut p2);
-        play_nonrec_round(&mut p1, &mut p2);
+        play_round(&mut p1, &mut p2);
+        play_round(&mut p1, &mut p2);
         //1
         assert_eq!(p1.pop_front(), Some(6));
         assert_eq!(p1.pop_front(), Some(3));
@@ -358,41 +294,44 @@ mod tests_part_1 {
     }
 
     #[test]
-    fn test_example_all_rounds() {
-        let file_conts = include_str!("../../inputs/d22-test").to_string();
-        let (mut p1, mut p2) = parse_file_to_vecs(file_conts);
-        play_all_nonrec_rounds(&mut p1, &mut p2);
-        //Thankfully we have the answer from the page!
-        //p1 should be empty!
-        assert_eq!(p1.pop_front(), None);
-        //And p2 should be 3, 2, 10, 6, 8, 5, 9, 4, 7, 1
-        assert_eq!(p2.pop_front(), Some(3));
-        assert_eq!(p2.pop_front(), Some(2));
-        assert_eq!(p2.pop_front(), Some(10));
-        assert_eq!(p2.pop_front(), Some(6));
-        assert_eq!(p2.pop_front(), Some(8));
-        assert_eq!(p2.pop_front(), Some(5));
-        assert_eq!(p2.pop_front(), Some(9));
-        assert_eq!(p2.pop_front(), Some(4));
-        assert_eq!(p2.pop_front(), Some(7));
-        assert_eq!(p2.pop_front(), Some(1));
-        assert_eq!(p2.pop_front(), None)
+    fn test_apply_winner() {
+        let mut p1a: Deck = VecDeque::with_capacity(1);
+        let mut p2a: Deck = VecDeque::with_capacity(3);
+        p1a.push_front(1);
+        p2a.push_front(2);
+
+        apply_winner(&mut p1a, &mut p2a, 3, 4, Winner::P2);
+        assert_eq!(p2a.len(), 3);
+        assert_eq!(p2a.pop_back(), Some(3));
+        assert_eq!(p2a.pop_back(), Some(4));
+        assert_eq!(p2a.pop_back(), Some(2));
+
+        let mut p1b: Deck = VecDeque::with_capacity(3);
+        let mut p2b: Deck = VecDeque::with_capacity(2);
+        p1b.push_front(1);
+        p2b.push_front(2);
+        apply_winner(&mut p1b, &mut p2b, 4, 3, Winner::P1);
+        assert_eq!(p1b.len(), 3);
+        assert_eq!(p1b.pop_back(), Some(3));
+        assert_eq!(p1b.pop_back(), Some(4));
+        assert_eq!(p1b.pop_back(), Some(1));
+
+        let mut p1c: Deck = VecDeque::with_capacity(3);
+        let mut p2c: Deck = VecDeque::with_capacity(2);
+        p1c.push_front(1);
+        p2c.push_front(2);
+        apply_winner(&mut p1c, &mut p2c, 3, 4, Winner::P1);
+        assert_eq!(p1c.len(), 3);
+        assert_eq!(p1c.pop_back(), Some(4));
+        assert_eq!(p1c.pop_back(), Some(3));
+        assert_eq!(p1c.pop_back(), Some(1));
     }
 
     #[test]
-    fn test_scoring() {
-        let file_conts = include_str!("../../inputs/d22-test").to_string();
-        let (mut p1, mut p2) = parse_file_to_vecs(file_conts);
-        play_all_nonrec_rounds(&mut p1, &mut p2);
-        //According to the page, the results should be... 0 for p1, and 306 for p2?
-        assert_eq!(score_deck(p1), 0);
-        assert_eq!(score_deck(p2), 306);
+    fn test_card_compare() {
+        assert!(matches!(compare_cards(1, 2), Winner::P2));
+        assert!(matches!(compare_cards(5, 2), Winner::P1));
     }
-}
-
-#[cfg(test)]
-mod tests_parts_both {
-    use super::parse_file_to_vecs;
 
     #[test]
     fn parse_file_to_vs_test() {
