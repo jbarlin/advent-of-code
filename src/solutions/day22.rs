@@ -1,8 +1,8 @@
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-use std::collections::BTreeSet;
 use crate::AoCDay;
+use std::collections::hash_map::DefaultHasher;
+use std::collections::BTreeSet;
 use std::collections::VecDeque;
+use std::hash::{Hash, Hasher};
 
 pub struct Code;
 
@@ -120,8 +120,8 @@ fn determine_rec_round_type(
     seen_hands: &mut BTreeSet<u64>,
 ) -> RecursiveTypes {
     let mut hasher = DefaultHasher::new();
-    //Create the tuple for checking seen hand configs
     //TODO: see if there is a way to avoid the clone here... Memory!
+    //Create the tuple for checking seen hand configs
     let tpl = (p1cards.clone(), p2cards.clone());
     tpl.hash(&mut hasher);
     let hash = hasher.finish();
@@ -136,8 +136,7 @@ fn determine_rec_round_type(
         seen_hands.insert(hash);
         let &card1 = p1cards.front().unwrap();
         let &card2 = p2cards.front().unwrap();
-        if p1cards.len() >= card1 && p2cards.len() >= card2 {
-           
+        if ((p1cards.len() - 1) >= card1) && ((p2cards.len() - 1) >= card2) {
             return RecursiveTypes::SubGame;
         } else if card1 > card2 {
             return RecursiveTypes::NotEnough(true);
@@ -173,16 +172,14 @@ fn p2wins_rec(p1cards: &mut VecDeque<usize>, p2cards: &mut VecDeque<usize>) {
 fn play_all_rec_rounds(
     p1cards: &mut VecDeque<usize>,
     p2cards: &mut VecDeque<usize>,
-    seen: &mut BTreeSet<u64>
+    seen: &mut BTreeSet<u64>,
 ) -> bool {
     //OK, let's loop!
-    while !p1cards.is_empty() && !p2cards.is_empty() {
+    while (!p1cards.is_empty()) && (!p2cards.is_empty()) {
         let result: RecursiveTypes = determine_rec_round_type(p1cards, p2cards, seen);
         match result {
-            RecursiveTypes::InfinityBreak | RecursiveTypes::NotEnough(true) => {
-                //P1 wins these types
-                p1wins_rec(p1cards, p2cards)
-            }
+            RecursiveTypes::InfinityBreak => p1wins_rec(p1cards, p2cards),
+            RecursiveTypes::NotEnough(true) => p1wins_rec(p1cards, p2cards),
             RecursiveTypes::NotEnough(false) => p2wins_rec(p1cards, p2cards),
             RecursiveTypes::SubGame => {
                 //OK, play a sub game and go from there!
@@ -190,8 +187,8 @@ fn play_all_rec_rounds(
                 let &card2 = p2cards.front().unwrap();
                 //Now we play with the next card1 cards of p1cards, and card2 cards of part2
                 //And then the winner is determined from there!
-                let mut new_p1 = p1cards.range(1..card1).copied().collect::<VecDeque<_>>();
-                let mut new_p2 = p2cards.range(1..card2).copied().collect::<VecDeque<_>>();
+                let mut new_p1 = p1cards.clone().range(1..card1).copied().collect::<VecDeque<_>>();
+                let mut new_p2 = p2cards.clone().range(1..card2).copied().collect::<VecDeque<_>>();
                 if play_all_rec_rounds(&mut new_p1, &mut new_p2, seen) {
                     p1wins_rec(p1cards, p2cards)
                 } else {
