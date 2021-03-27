@@ -31,8 +31,10 @@ impl AoCDay for Code {
         let mut seen: BTreeSet<u64> = BTreeSet::new();
         play_all_rec_rounds(&mut p1, &mut p2, &mut seen);
         if p1.is_empty() {
+            println!("2: {:?}", p2);
             return score_deck(p2).to_string();
         } else {
+            println!("1: {:?}", p1);
             return score_deck(p1).to_string();
         }
     }
@@ -41,11 +43,11 @@ impl AoCDay for Code {
 /**
  * Helper function to parse a given string (the file contents) into the appropriate vectors
  */
-fn parse_file_to_vecs(file_content: String) -> (VecDeque<usize>, VecDeque<usize>) {
+fn parse_file_to_vecs(file_content: String) -> (VecDeque<u8>, VecDeque<u8>) {
     //Need to use nightly to run split_once as it's unstable in stable (???)
     let (player1, player2) = file_content.split_once("\n\n").unwrap();
     //Get all p1 cards
-    let p1cards: VecDeque<usize> = player1
+    let p1cards: VecDeque<u8> = player1
         //Automatically split by line
         .lines()
         //The first one seems to say "Player1" so skip that
@@ -55,7 +57,7 @@ fn parse_file_to_vecs(file_content: String) -> (VecDeque<usize>, VecDeque<usize>
         //Get all the numbers as a vec
         .collect();
     //Repeat for p2cards
-    let p2cards: VecDeque<usize> = player2
+    let p2cards: VecDeque<u8> = player2
         .lines()
         .skip(1)
         .map(|lc| lc.parse().unwrap())
@@ -66,7 +68,7 @@ fn parse_file_to_vecs(file_content: String) -> (VecDeque<usize>, VecDeque<usize>
 /**
  * Helper function to play one round of the game.
  */
-fn play_nonrec_round(p1cards: &mut VecDeque<usize>, p2cards: &mut VecDeque<usize>) {
+fn play_nonrec_round(p1cards: &mut VecDeque<u8>, p2cards: &mut VecDeque<u8>) {
     let card1 = p1cards.pop_front().unwrap();
     let card2 = p2cards.pop_front().unwrap();
     if card1 == card2 {
@@ -83,7 +85,7 @@ fn play_nonrec_round(p1cards: &mut VecDeque<usize>, p2cards: &mut VecDeque<usize
 /**
  * Helper function to play all rounds of the game
  */
-fn play_all_nonrec_rounds(p1cards: &mut VecDeque<usize>, p2cards: &mut VecDeque<usize>) {
+fn play_all_nonrec_rounds(p1cards: &mut VecDeque<u8>, p2cards: &mut VecDeque<u8>) {
     while !p1cards.is_empty() && !p2cards.is_empty() {
         play_nonrec_round(p1cards, p2cards);
     }
@@ -92,14 +94,13 @@ fn play_all_nonrec_rounds(p1cards: &mut VecDeque<usize>, p2cards: &mut VecDeque<
 /**
  * Helper function to score a deck!
  */
-fn score_deck(deck: VecDeque<usize>) -> usize {
+fn score_deck(deck: VecDeque<u8>) -> usize {
     //OK, I have a deck... reverse, zip with positions (enumerate? Is that what rust calls it?), and then multiply, then sum?
     return deck
         .into_iter()
         .rev()
         .enumerate()
-        .map(|(index, value)| (index + 1) * value)
-        .sum();
+        .fold(0, |acc, (index, value)| acc + (index + 1) * (value as usize));
 }
 
 /// All possible recursive game results
@@ -115,28 +116,34 @@ enum RecursiveTypes {
  * Helper function to determine what type of recursive round we are looking at
  */
 fn determine_rec_round_type(
-    p1cards: &mut VecDeque<usize>,
-    p2cards: &mut VecDeque<usize>,
+    p1cards: &mut VecDeque<u8>,
+    p2cards: &mut VecDeque<u8>,
     seen_hands: &mut BTreeSet<u64>,
 ) -> RecursiveTypes {
     let mut hasher = DefaultHasher::new();
     //TODO: see if there is a way to avoid the clone here... Memory!
     //Create the tuple for checking seen hand configs
-    let tpl = (p1cards.clone(), p2cards.clone());
-    tpl.hash(&mut hasher);
+    if false{
+        let tpl = (p1cards.clone(), p2cards.clone());
+        tpl.hash(&mut hasher);
+    }else{
+        //See https://dev.to/neilgall/comment/19fh4
+        p1cards.hash(&mut hasher);
+        //p2cards.hash(&mut hasher);
+    }
     let hash = hasher.finish();
     //Have we seen it?
-    if seen_hands.contains(&hash) {
+    if p1cards.is_empty() || p2cards.is_empty() {
+        panic!("Don't pass empty vecs to me!!!")
+    } else if seen_hands.contains(&hash) {
         //Yes, infinity break time!
         return RecursiveTypes::InfinityBreak;
-    } else if p1cards.is_empty() || p2cards.is_empty() {
-        panic!("Don't pass empty vecs to me!!!")
     } else {
         //No, then add it and work out what we are doing!
         seen_hands.insert(hash);
         let &card1 = p1cards.front().unwrap();
         let &card2 = p2cards.front().unwrap();
-        if ((p1cards.len() - 1) >= card1) && ((p2cards.len() - 1) >= card2) {
+        if ((p1cards.len()) > card1.into()) && ((p2cards.len()) > card2.into()) {
             return RecursiveTypes::SubGame;
         } else if card1 > card2 {
             return RecursiveTypes::NotEnough(true);
@@ -153,14 +160,14 @@ fn determine_rec_round_type(
  * Used in recursive version
  * Compiler will probably inline
  */
-fn p1wins_rec(p1cards: &mut VecDeque<usize>, p2cards: &mut VecDeque<usize>) {
+fn p1wins_rec(p1cards: &mut VecDeque<u8>, p2cards: &mut VecDeque<u8>) {
     let card1 = p1cards.pop_front().unwrap();
     let card2 = p2cards.pop_front().unwrap();
     //
     p1cards.push_back(card1);
     p1cards.push_back(card2);
 }
-fn p2wins_rec(p1cards: &mut VecDeque<usize>, p2cards: &mut VecDeque<usize>) {
+fn p2wins_rec(p1cards: &mut VecDeque<u8>, p2cards: &mut VecDeque<u8>) {
     let card1 = p1cards.pop_front().unwrap();
     let card2 = p2cards.pop_front().unwrap();
     //Push these the correct way around since 2 won!
@@ -170,8 +177,8 @@ fn p2wins_rec(p1cards: &mut VecDeque<usize>, p2cards: &mut VecDeque<usize>) {
 
 /// Return true if winner is P1, return false if winner is P2!
 fn play_all_rec_rounds(
-    p1cards: &mut VecDeque<usize>,
-    p2cards: &mut VecDeque<usize>,
+    p1cards: &mut VecDeque<u8>,
+    p2cards: &mut VecDeque<u8>,
     seen: &mut BTreeSet<u64>,
 ) -> bool {
     //OK, let's loop!
@@ -187,8 +194,8 @@ fn play_all_rec_rounds(
                 let &card2 = p2cards.front().unwrap();
                 //Now we play with the next card1 cards of p1cards, and card2 cards of part2
                 //And then the winner is determined from there!
-                let mut new_p1 = p1cards.clone().range(1..card1).copied().collect::<VecDeque<_>>();
-                let mut new_p2 = p2cards.clone().range(1..card2).copied().collect::<VecDeque<_>>();
+                let mut new_p1 = p1cards.range(1..card1.into()).copied().collect::<VecDeque<_>>();
+                let mut new_p2 = p2cards.range(1..card2.into()).copied().collect::<VecDeque<_>>();
                 if play_all_rec_rounds(&mut new_p1, &mut new_p2, seen) {
                     p1wins_rec(p1cards, p2cards)
                 } else {
@@ -208,8 +215,8 @@ mod tests_part_2 {
     #[test]
     fn test_rec_type_calc() {
         //OK, test all 4 known valid scenarios
-        let mut p1a: VecDeque<usize> = VecDeque::with_capacity(1);
-        let mut p2a: VecDeque<usize> = VecDeque::with_capacity(1);
+        let mut p1a: VecDeque<u8> = VecDeque::with_capacity(1);
+        let mut p2a: VecDeque<u8> = VecDeque::with_capacity(1);
         let mut seen: BTreeSet<u64> = BTreeSet::new();
         p1a.push_front(1);
         p2a.push_front(2);
@@ -277,8 +284,8 @@ mod tests_part_1 {
 
     #[test]
     fn test_simple_rounds() {
-        let mut p1a: VecDeque<usize> = VecDeque::with_capacity(2);
-        let mut p2a: VecDeque<usize> = VecDeque::with_capacity(2);
+        let mut p1a: VecDeque<u8> = VecDeque::with_capacity(2);
+        let mut p2a: VecDeque<u8> = VecDeque::with_capacity(2);
         p1a.push_front(1);
         p2a.push_front(2);
         play_nonrec_round(&mut p1a, &mut p2a);
@@ -287,8 +294,8 @@ mod tests_part_1 {
         assert_eq!(p2a.pop_front(), Some(1));
         assert_eq!(p2a.pop_front(), None);
         //OK, now try the other way around!
-        let mut p1b: VecDeque<usize> = VecDeque::with_capacity(2);
-        let mut p2b: VecDeque<usize> = VecDeque::with_capacity(2);
+        let mut p1b: VecDeque<u8> = VecDeque::with_capacity(2);
+        let mut p2b: VecDeque<u8> = VecDeque::with_capacity(2);
         p1b.push_front(9);
         p2b.push_front(5);
         play_nonrec_round(&mut p1b, &mut p2b);
