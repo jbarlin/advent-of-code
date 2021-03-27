@@ -30,6 +30,12 @@ impl Day {
     }
 
     pub fn get_code(&self) -> &dyn AoCDay {
-        /* Add match code */
+        match self.day.get() {
+22 => &day22::Code,
+23 => &day23::Code,
+24 => &day24::Code,
+25 => &day25::Code,
+_ => unreachable!(),
+}
     }
 }
