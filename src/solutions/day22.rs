@@ -3,6 +3,28 @@ use std::collections::VecDeque;
 
 pub struct Code;
 
+impl AoCDay for Code {
+    fn part1(&self, input: &mut dyn std::io::Read, _extra_argss: &[String]) -> String {
+        let mut file_content: String = String::new();
+        //To read in as string yields a a size... Which we ignore (bad rust!)
+        let _size = input.read_to_string(&mut file_content);
+        //Use helper functions (see below) - these make it easier to unit test (see the bottom of the page!)
+        let (mut p1, mut p2) = parse_file_to_vecs(file_content);
+        play_all_nonrec_rounds(&mut p1,&mut  p2);
+
+        //OK, we don't know or care who the winner is? Just need the final score
+        if p1.is_empty(){
+            return score_deck(p2).to_string();
+        }else{
+            return score_deck(p1).to_string();
+        }
+    }
+
+    fn part2(&self, _input: &mut dyn std::io::Read, _extra_args: &[String]) -> String {
+        todo!()
+    }
+}
+
 /**
  * Helper function to parse a given string (the file contents) into the appropriate vectors
  */
@@ -67,25 +89,6 @@ fn score_deck(deck: VecDeque<usize>) -> usize{
         .sum()
 }
 
-impl AoCDay for Code {
-    fn part1(&self, input: &mut dyn std::io::Read, _extra_argss: &[String]) -> String {
-        let mut file_content: String = String::new();
-        //To read in as string yields an
-        let _size = input.read_to_string(&mut file_content);
-        let (mut p1, mut p2) = parse_file_to_vecs(file_content);
-        play_all_nonrec_rounds(&mut p1,&mut  p2);
-        //OK, we don't know or care who the winner is?
-        if p1.is_empty(){
-            return score_deck(p2).to_string();
-        }else{
-            return score_deck(p1).to_string();
-        }
-    }
-
-    fn part2(&self, _input: &mut dyn std::io::Read, _extra_args: &[String]) -> String {
-        todo!()
-    }
-}
 
 #[cfg(test)]
 mod tests {
