@@ -271,7 +271,7 @@ impl ConwayFloor {
 mod test_token {
     use crate::day24::{tokenize, DIRECTION};
     #[test]
-    fn test__tokenize() {
+    fn test_tokenize() {
         let se = tokenize("se".to_string());
         assert_eq!(se.len(), 1);
         assert_eq!(se[0].len(), 1);

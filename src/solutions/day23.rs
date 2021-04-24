@@ -163,7 +163,7 @@ mod tests_all{
     fn test_cups_list(){
         let mut arr = get_test_cups();
         let curr_cup = 2 as u32;
-        let next_cup = run_moves(&mut arr, 10, curr_cup);
+        run_moves(&mut arr, 10, curr_cup);
         let cups_list = collect_cups_after_1(arr);
         assert_eq!(cups_list, "92658374");
     }
@@ -172,7 +172,7 @@ mod tests_all{
     fn test_cups_list_100(){
         let mut arr = get_test_cups();
         let curr_cup = 2 as u32;
-        let next_cup = run_moves(&mut arr, 100, curr_cup);
+        run_moves(&mut arr, 100, curr_cup);
         let cups_list = collect_cups_after_1(arr);
         assert_eq!(cups_list, "67384529");
     }
