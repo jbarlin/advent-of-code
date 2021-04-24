@@ -177,7 +177,7 @@ mod tests_all{
         assert_eq!(cups_list, "67384529");
     }
 
-    #[test]
+    #[test] #[ignore]
     fn test_million_run(){
         let mut arr: Cups = (0..1000000).collect();
         let curr_cup = 2 as u32;
