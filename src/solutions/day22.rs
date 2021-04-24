@@ -7,11 +7,11 @@ pub struct Code;
 
 type Deck = VecDeque<u8>;
 
+const FL_CONT: &str = include_str!("../../inputs/Day22");
+
 impl AoCDay for Code {
-    fn part1(&self, input: &mut dyn std::io::Read, _extra_argss: &[String]) -> String {
-        let mut file_content: String = String::new();
-        //To read in as string yields a a size... Which we ignore (bad rust!)
-        let _size = input.read_to_string(&mut file_content);
+    fn part1(&self, _input: &mut dyn std::io::Read, _extra_argss: &[String]) -> String {
+        let file_content: String = FL_CONT.to_string();
         //Use helper functions (see below) - these make it easier to unit test (see the bottom of the page!)
         let (mut p1, mut p2) = parse_file_to_vecs(file_content);
         let winner = play_all_nonrec_rounds(&mut p1, &mut p2);
@@ -22,10 +22,8 @@ impl AoCDay for Code {
         };
     }
 
-    fn part2(&self, input: &mut dyn std::io::Read, _extra_args: &[String]) -> String {
-        let mut file_content: String = String::new();
-        //To read in as string yields a a size... Which we ignore (bad rust!)
-        let _size = input.read_to_string(&mut file_content);
+    fn part2(&self, _input: &mut dyn std::io::Read, _extra_args: &[String]) -> String {
+        let file_content: String = FL_CONT.to_string();
         //Use helper functions (see below) - these make it easier to unit test (see the bottom of the page!)
         let (mut p1, mut p2) = parse_file_to_vecs(file_content);
         let winner = play_all_rec_rounds(&mut p1, &mut p2);
