@@ -1,17 +1,14 @@
-use std::io::Read;
+pub trait SinglePart{
+    fn run(&self) -> String;
+}
 
-/// Trait for every solution
-///
-/// All methods take a `dyn Read`. It can be given a file object (actual input) or a string (test cases)
-///
-/// Extra args are for cases where there are extra details in the question that are not part of the input itself
-pub trait AoCDay {
-    fn part1(&self, input: &mut dyn Read, extra_args: &[String]) -> String;
-    fn part2(&self, input: &mut dyn Read, extra_args: &[String]) -> String;
+pub trait AoCDay{
+    fn part1(&self) -> String;
+    fn part2(&self) -> String;
     /// This method should be implemented if solving both parts together is more efficient than doing them one at a time
-    fn both(&self, input: &mut dyn Read, extra_args: &[String]) -> String {
-        let p1 = self.part1(input, extra_args);
-        let p2 = self.part2(input, extra_args);
+    fn both(&self) -> String {
+        let p1 = self.part1();
+        let p2 = self.part2();
         format!(
             "Part1: {}\n\
             Part2: {}",

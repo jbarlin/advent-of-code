@@ -10,7 +10,7 @@ type Deck = VecDeque<u8>;
 const FL_CONT: &str = include_str!("../../inputs/Day22");
 
 impl AoCDay for Code {
-    fn part1(&self, _input: &mut dyn std::io::Read, _extra_argss: &[String]) -> String {
+    fn part1(&self) -> String {
         let file_content: String = FL_CONT.to_string();
         //Use helper functions (see below) - these make it easier to unit test (see the bottom of the page!)
         let (mut p1, mut p2) = parse_file_to_vecs(file_content);
@@ -22,7 +22,7 @@ impl AoCDay for Code {
         };
     }
 
-    fn part2(&self, _input: &mut dyn std::io::Read, _extra_args: &[String]) -> String {
+    fn part2(&self) -> String {
         let file_content: String = FL_CONT.to_string();
         //Use helper functions (see below) - these make it easier to unit test (see the bottom of the page!)
         let (mut p1, mut p2) = parse_file_to_vecs(file_content);

@@ -40,13 +40,13 @@ type ACTIONS = Vec<Vec<DIRECTION>>;
 const FL_CONT: &str = include_str!("../../inputs/Day24");
 
 impl AoCDay for Code {    
-    fn part1(&self, _input: &mut dyn std::io::Read, _extra_argss: &[String]) -> String {
+    fn part1(&self) -> String {
         let file_conts: String = FL_CONT.to_string();
         let mut grid: XYZGrid = HashMap::new();
         flip_tiles(tokenize(file_conts.to_string()), &mut grid);
         return count_black_tiles(&grid).to_string();
     }
-    fn part2(&self, _input: &mut dyn std::io::Read, _extra_args: &[String]) -> String {
+    fn part2(&self) -> String {
         let file_conts: String = FL_CONT.to_string();
         let mut grid: XYZGrid = HashMap::new();
         flip_tiles(tokenize(file_conts.to_string()), &mut grid);

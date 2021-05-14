@@ -3,6 +3,7 @@ use std::num::NonZeroU8;
 use std::str::FromStr;
 
 use aoc_2020::*;
+use either::*;
 use structopt::StructOpt;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, StructOpt)]
@@ -25,16 +26,12 @@ impl FromStr for Day {
 }
 
 impl Day {
-    pub fn get(&self) -> u8 {
-        self.day.get()
-    }
-
-    pub fn get_code(&self) -> &dyn AoCDay {
+    pub fn get_code(&self) -> Either<&dyn AoCDay, &dyn SinglePart> {
         match self.day.get() {
-        22 => &day22::Code,
-        23 => &day23::Code,
-        24 => &day24::Code,
-        25 => &day25::Code,
+        22 => Left(&day22::Code),
+        23 => Left(&day23::Code),
+        24 => Left(&day24::Code),
+        25 => Right(&day25::Code),
         _ => unreachable!(),
         }
     }

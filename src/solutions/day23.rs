@@ -6,13 +6,13 @@ pub struct Code;
 
 impl AoCDay for Code {
 
-    fn part1(&self, _input: &mut dyn std::io::Read, _extra_argss: &[String]) -> String {
+    fn part1(&self) -> String {
         let mut cups = init(9);
         run_moves(&mut cups, 100, 0);
         return collect_cups_after_1(cups);
     }
 
-    fn part2(&self, _input: &mut dyn std::io::Read, _extra_args: &[String]) -> String {
+    fn part2(&self) -> String {
         let mut cups = init(1000000);
         run_moves(&mut cups, 10000000, 0);
         return get_two_after_1(cups);

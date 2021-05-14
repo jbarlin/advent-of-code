@@ -1,6 +1,6 @@
 use std::usize;
 
-use crate::AoCDay;
+use crate::{SinglePart};
 pub struct Code;
 
 type Loops = usize;
@@ -10,14 +10,9 @@ const MODULAR: usize = 20201227;
 const CARD_PUBLIC_KEY: usize = 9717666;
 const DOOR_PUBLIC_KEY: usize = 20089533;
 
-impl AoCDay for Code {
-    fn part1(&self, _input: &mut dyn std::io::Read, _extra_argss: &[String]) -> String {
-
+impl SinglePart for Code {
+    fn run(&self) -> String {
         return solve(CARD_PUBLIC_KEY, DOOR_PUBLIC_KEY).0.to_string();
-    }
-
-    fn part2(&self, _input: &mut dyn std::io::Read, _extra_args: &[String]) -> String {
-        return "".to_string();
     }
 }
 
