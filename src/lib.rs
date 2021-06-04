@@ -18,11 +18,14 @@ pub trait AoCDay{
 }
 
 pub mod solutions {
-    pub mod day22;
-    pub mod day23;
-    pub mod day24;
-    pub mod day25;
+    pub mod nineteen01;
+    pub mod nineteen02;
+    //pub mod day22;
+    //pub mod day23;
+    //pub mod day24;
+    //pub mod day25;
 }
 
 pub use solutions::*;
+pub mod intcode;
 
