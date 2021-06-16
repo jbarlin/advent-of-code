@@ -11,7 +11,7 @@ const FL_CONT: &str = include_str!("../../inputs/2019/Day2.txt");
 impl AoCDay for Code{
 	fn part1(&self) -> String {
         let file_content: String = FL_CONT.to_string();
-		let mut program: Memory = IntCodeVM::parseStr(file_content);
+		let mut program: Memory = IntCodeVM::parse_str(file_content);
 		program[1] = 12;
 		program[2] = 2;
 		let mut vm = IntCodeVM::new(program);
@@ -20,7 +20,7 @@ impl AoCDay for Code{
     }
 	fn part2(&self) -> String {
 		let file_content: String = FL_CONT.to_string();
-		let mut program: Memory = IntCodeVM::parseStr(file_content);
+		let mut program: Memory = IntCodeVM::parse_str(file_content);
 		for noun in 0..99{
 			program[1] = noun;
 			for verb in 0..99{

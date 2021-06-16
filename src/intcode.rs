@@ -1,5 +1,3 @@
-use std::{convert::TryFrom, error::Error};
-
 type NumType = usize;
 
 pub type Memory = Vec<NumType>;
@@ -29,7 +27,7 @@ impl Opcode {
 
 impl IntCodeVM{
 
-	pub fn parseStr(fl_content: String) -> Memory {
+	pub fn parse_str(fl_content: String) -> Memory {
 		return fl_content
 			//Automatically split by line
 			.lines()
@@ -44,7 +42,7 @@ impl IntCodeVM{
 	}
 
 	pub fn new_from_str(fl_content: String) -> Self{
-		return IntCodeVM::new(IntCodeVM::parseStr(fl_content));
+		return IntCodeVM::new(IntCodeVM::parse_str(fl_content));
 	}
 
 	pub fn new(memory: Memory) -> Self {

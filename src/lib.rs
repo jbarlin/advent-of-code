@@ -20,6 +20,7 @@ pub trait AoCDay{
 pub mod solutions {
     pub mod nineteen01;
     pub mod nineteen02;
+    pub mod nineteen03;
     //pub mod day22;
     //pub mod day23;
     //pub mod day24;
