@@ -75,24 +75,6 @@ impl Opcode {
 
 impl IntCodeVM{
 
-	pub fn parse_str(fl_content: String) -> Memory {
-		return fl_content
-			//Automatically split by line
-			.lines()
-			//First line
-			.next().unwrap()
-			//Split by comma
-			.split(",")
-			//Parse each line into a number
-			.map(|lc| lc.parse().unwrap())
-			// collect them
-			.collect();
-	}
-
-	pub fn new_from_str(fl_content: String) -> Self{
-		return IntCodeVM::new(IntCodeVM::parse_str(fl_content));
-	}
-
 	pub fn new(memory: Memory) -> Self {
 		Self {
 			memory,
@@ -137,13 +119,14 @@ impl IntCodeVM{
 		}
 	}
 
-	fn read(&self, index: usize, mode: Mode) -> NumType {
+	fn read_mem(&self, index: usize, mode: Mode) -> NumType {
+		
 		match mode {
-			Mode::Immidiate => self.memory[index],
-			Mode::Position => self.memory[self.memory[index] as usize],
+			Mode::Immidiate => *self.memory.get(index).unwrap_or(&0),
+			Mode::Position => *self.memory.get(*self.memory.get(index).unwrap_or(&0) as usize).unwrap_or(&0),
 		}
 	}
-	pub fn write(&mut self, index: usize, mode: Mode, value: NumType) {
+	fn write_mem(&mut self, index: usize, mode: Mode, value: NumType) {
 		let rel_index = self.memory[index];
 		match mode {
 			Mode::Position => self.memory[rel_index as usize] = value,
@@ -151,7 +134,7 @@ impl IntCodeVM{
 		}
 	}
 
-	pub fn run_one_command(&mut self){
+	fn run_one_command(&mut self){
 
 		let command = self.memory[self.register];
 
@@ -164,15 +147,15 @@ impl IntCodeVM{
 		};
 		let next_instruction = match opcode {
 			Opcode::Add => {
-				let a = self.read(self.register + 1, modes_find());
-				let b = self.read(self.register + 2, modes_find());
-				self.write(self.register+3, modes_find(), a + b);
+				let a = self.read_mem(self.register + 1, modes_find());
+				let b = self.read_mem(self.register + 2, modes_find());
+				self.write_mem(self.register+3, modes_find(), a + b);
 				self.register + 4
 			}
 			Opcode::Multiply => {
-				let a = self.read(self.register + 1, modes_find());
-				let b = self.read(self.register + 2, modes_find());
-				self.write(self.register+3, modes_find(), a * b);
+				let a = self.read_mem(self.register + 1, modes_find());
+				let b = self.read_mem(self.register + 2, modes_find());
+				self.write_mem(self.register+3, modes_find(), a * b);
 				self.register + 4
 			}
 			Opcode::Stop => {
@@ -182,7 +165,7 @@ impl IntCodeVM{
 			Opcode::Input => {
 				match self.input.pop_front() {
 					Some(nvar) => {
-						self.write(self.register + 1, modes_find(), nvar);
+						self.write_mem(self.register + 1, modes_find(), nvar);
 						self.register + 2
 					},
 					None => {
@@ -192,35 +175,35 @@ impl IntCodeVM{
 				}
 			},
 			Opcode::Output => {
-				self.output.push_back(self.read(self.register + 1, modes_find()));
+				self.output.push_back(self.read_mem(self.register + 1, modes_find()));
 				self.register + 2
 			},
 			Opcode::JumpIfTrue => {
-				let act = self.read(self.register + 1, modes_find());
+				let act = self.read_mem(self.register + 1, modes_find());
 				if act != 0 {
-					self.read(self.register + 2, modes_find()) as usize
+					self.read_mem(self.register + 2, modes_find()) as usize
 				}else{
 					self.register + 3
 				}
 			},
 			Opcode::JumpIfFalse => {
-				let act = self.read(self.register + 1, modes_find());
+				let act = self.read_mem(self.register + 1, modes_find());
 				if act == 0 {
-					self.read(self.register + 2, modes_find()) as usize
+					self.read_mem(self.register + 2, modes_find()) as usize
 				}else{
 					self.register + 3
 				}
 			},
 			Opcode::LessThan => {
-				let a = self.read(self.register + 1, modes_find());
-				let b = self.read(self.register + 2, modes_find());
-				self.write(self.register + 3, modes_find(), if a < b {1} else {0});
+				let a = self.read_mem(self.register + 1, modes_find());
+				let b = self.read_mem(self.register + 2, modes_find());
+				self.write_mem(self.register + 3, modes_find(), if a < b {1} else {0});
 				self.register + 4
 			},
 			Opcode::Equals => {
-				let a = self.read(self.register + 1, modes_find());
-				let b = self.read(self.register + 2, modes_find());
-				self.write(self.register + 3, modes_find(), if a == b {1} else {0});
+				let a = self.read_mem(self.register + 1, modes_find());
+				let b = self.read_mem(self.register + 2, modes_find());
+				self.write_mem(self.register + 3, modes_find(), if a == b {1} else {0});
 				self.register + 4
 			}
 		} as usize;

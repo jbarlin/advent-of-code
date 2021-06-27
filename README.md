@@ -16,4 +16,4 @@ Thanks Criterion! These are the mean times, more details would be included if yo
 | 2019 02 | 922.28 ns | 1.9178 ms |
 | 2019 03 | N/A | 33.630 ms |
 | 2019 04 | N/A | 23.571 us |
-| 2019 05 | 1.6021 us | 1.6168 us |
+| 2019 05 | 1.3979 us us | 1.6357 us |
