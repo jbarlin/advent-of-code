@@ -10,9 +10,9 @@ pub enum State {
 	Reading
 }
 impl Default for State {
-    fn default() -> Self {
-        State::Ready
-    }
+	fn default() -> Self {
+		State::Ready
+	}
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode{
@@ -57,20 +57,20 @@ pub enum Opcode{
 }
 
 impl Opcode {
-    fn convert_int(value: NumType) -> Opcode {
-        match value {
-            1 => Opcode::Add,
-            2 => Opcode::Multiply,
+	fn convert_int(value: NumType) -> Opcode {
+		match value {
+			1 => Opcode::Add,
+			2 => Opcode::Multiply,
 			3 => Opcode::Input,
 			4 => Opcode::Output,
 			5 => Opcode::JumpIfTrue,
 			6 => Opcode::JumpIfFalse,
 			7 => Opcode::LessThan,
 			8 => Opcode::Equals,
-            99 => Opcode::Stop,
-            _ => panic!("Not a valid op code - {}", value),
-        }
-    }
+			99 => Opcode::Stop,
+			_ => panic!("Not a valid op code - {}", value),
+		}
+	}
 }
 
 impl IntCodeVM{
@@ -94,15 +94,15 @@ impl IntCodeVM{
 	}
 
 	pub fn new(memory: Memory) -> Self {
-        Self {
-            memory,
+		Self {
+			memory,
 			register: 0,
 			state: State::default(),
 			mode: Mode::default(),
 			input: VecDeque::new(),
 			output: VecDeque::new()
-        }
-    }
+		}
+	}
 
 	pub fn push_input(&mut self, entry: NumType){
 		self.input.push_back(entry);
@@ -130,7 +130,7 @@ impl IntCodeVM{
 				State::Stopped => {
 					break;
 				}
-    			State::Reading => {
+				State::Reading => {
 					break;
 				}
 			}
@@ -138,18 +138,18 @@ impl IntCodeVM{
 	}
 
 	fn read(&self, index: usize, mode: Mode) -> NumType {
-        match mode {
-            Mode::Immidiate => self.memory[index],
-            Mode::Position => self.memory[self.memory[index] as usize],
-        }
-    }
+		match mode {
+			Mode::Immidiate => self.memory[index],
+			Mode::Position => self.memory[self.memory[index] as usize],
+		}
+	}
 	pub fn write(&mut self, index: usize, mode: Mode, value: NumType) {
 		let rel_index = self.memory[index];
-        match mode {
-            Mode::Position => self.memory[rel_index as usize] = value,
+		match mode {
+			Mode::Position => self.memory[rel_index as usize] = value,
 			_ => unreachable!()
-        }
-    }
+		}
+	}
 
 	pub fn run_one_command(&mut self){
 
@@ -159,8 +159,8 @@ impl IntCodeVM{
 		let mut mode_raw = command / 100;
 		let mut modes_find = || {
 			let mode = mode_raw % 10;
-            mode_raw /= 10;
-            Mode::convert_int(mode)
+			mode_raw /= 10;
+			Mode::convert_int(mode)
 		};
 		let next_instruction = match opcode {
 			Opcode::Add => {
@@ -179,7 +179,7 @@ impl IntCodeVM{
 				self.state = State::Stopped;
 				self.register + 1
 			}
-    		Opcode::Input => {
+			Opcode::Input => {
 				match self.input.pop_front() {
 					Some(nvar) => {
 						self.write(self.register + 1, modes_find(), nvar);
@@ -191,7 +191,7 @@ impl IntCodeVM{
 					}
 				}
 			},
-    		Opcode::Output => {
+			Opcode::Output => {
 				self.output.push_back(self.read(self.register + 1, modes_find()));
 				self.register + 2
 			},
@@ -231,7 +231,7 @@ impl IntCodeVM{
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+	use super::*;
 
 	#[test]
 	fn test_egs_d5_b(){
@@ -345,31 +345,31 @@ mod tests {
 		assert_eq!(vmc.memory, post_c);
 		
 	}
-    #[test]
-    fn test_examples() {
+	#[test]
+	fn test_examples() {
 		let mut vma = IntCodeVM::new( vec![1,9,10,3,2,3,11,0,99,30,40,50]);
 		vma.run_all();
-       	let post_a: Memory = vec![3500,9,10,70,2,3,11,0,99,30,40,50];
+	   	let post_a: Memory = vec![3500,9,10,70,2,3,11,0,99,30,40,50];
 		assert_eq!(vma.memory, post_a);
 
 		let mut vmb = IntCodeVM::new( vec![1,0,0,0,99]);
 		vmb.run_all();
-       	let post_b: Memory = vec![2,0,0,0,99];
+	   	let post_b: Memory = vec![2,0,0,0,99];
 		assert_eq!(vmb.memory, post_b);
 
 		let mut vmc = IntCodeVM::new( vec![2,3,0,3,99]);
 		vmc.run_all();
-       	let post_c: Memory = vec![2,3,0,6,99];
+	   	let post_c: Memory = vec![2,3,0,6,99];
 		assert_eq!(vmc.memory, post_c);
 
 		let mut vmd = IntCodeVM::new( vec![1,1,1,4,99,5,6,0,99]);
 		vmd.run_all();
-       	let post_d: Memory = vec![30,1,1,4,2,5,6,0,99];
+	   	let post_d: Memory = vec![30,1,1,4,2,5,6,0,99];
 		assert_eq!(vmd.memory, post_d);
 
 		let mut vme = IntCodeVM::new( vec![2,4,4,5,99,0]);
 		vme.run_all();
-       	let post_e: Memory = vec![2,4,4,5,99,9801];
+	   	let post_e: Memory = vec![2,4,4,5,99,9801];
 		assert_eq!(vme.memory, post_e);
-    }
+	}
 }
