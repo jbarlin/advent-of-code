@@ -23,10 +23,10 @@ pub mod solutions {
     pub mod nineteen03;
     pub mod nineteen04;
     pub mod nineteen05;
-    //pub mod day22;
-    //pub mod day23;
-    //pub mod day24;
-    //pub mod day25;
+    pub mod day22;
+    pub mod day23;
+    pub mod day24;
+    pub mod day25;
 }
 
 pub use solutions::*;

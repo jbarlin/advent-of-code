@@ -28,10 +28,10 @@ impl Day {
         201903 => Right(&nineteen03::Code),
         201904 => Right(&nineteen04::Code),
         201905 => Left(&nineteen05::Code),
-        //202022 => Left(&day22::Code),
-        //202023 => Left(&day23::Code),
-        //202024 => Left(&day24::Code),
-        //202025 => Right(&day25::Code),
+        202022 => Left(&day22::Code),
+        202023 => Left(&day23::Code),
+        202024 => Left(&day24::Code),
+        202025 => Right(&day25::Code),
         _ => unreachable!(),
         }
     }

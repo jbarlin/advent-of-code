@@ -1,4 +1,4 @@
-type NumType = i64;
+pub type NumType = i64;
 
 use std::collections::VecDeque;
 

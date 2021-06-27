@@ -1,10 +1,12 @@
 use crate::SinglePart;
 
 pub struct Code;
+pub const MIN: u32 = 168630;
+pub const MAX: u32 = 718098;
 
 impl SinglePart for Code{
 	fn run(&self) -> String {
-		let res = count_passwords_between(168630, 718098);
+		let res = count_passwords_between(MIN, MAX);
 		let fmt = format!("Part 1:\t{}\nPart 2:\t{}\n",res.0, res.1);
 		return fmt;
     }
@@ -12,7 +14,7 @@ impl SinglePart for Code{
 
 const OPS: [u32;6] = [100000,10000,1000,100,10,1];
 
-fn count_passwords_between(min: u32, max: u32) -> (u32, u32){
+pub fn count_passwords_between(min: u32, max: u32) -> (u32, u32){
 	let mut count_a: u32 = 0;
 	let mut count_b: u32 = 0;
 	let mut num_checking = min;
@@ -60,3 +62,4 @@ fn count_passwords_between(min: u32, max: u32) -> (u32, u32){
 
 	return (count_a, count_b);
 }
+
