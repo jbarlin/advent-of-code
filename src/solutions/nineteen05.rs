@@ -12,14 +12,14 @@ impl AoCDay for Code{
 		let mut vm = IntCodeVM::new(Vec::from(DAY_5_DATA));
 		vm.push_input(1);
 		vm.run_all();
-		let mut out = vm.output();
+		let mut out = vm.output().take();
 		return out.pop_back().unwrap().to_string();
     }
 	fn part2(&self) -> String {
 		let mut vm = IntCodeVM::new(Vec::from(DAY_5_DATA));
 		vm.push_input(5);
 		vm.run_all();
-		let mut out = vm.output();
+		let mut out = vm.output().take();
 		return out.pop_back().unwrap().to_string();
 	}
 }

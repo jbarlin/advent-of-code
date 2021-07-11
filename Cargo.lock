@@ -33,7 +33,9 @@ dependencies = [
  "color-eyre",
  "criterion",
  "either",
+ "itertools 0.10.1",
  "rand",
+ "rayon",
  "structopt",
 ]
 

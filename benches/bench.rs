@@ -41,6 +41,13 @@ pub fn ninteen06(c: &mut Criterion) {
 	c.bench_function("2019-06 Part 2", |b| b.iter(|| part_2_impl(black_box(FL_CONT))));
 }
 
+pub fn ninteen07(c: &mut Criterion) {
+	use aoc_2020::nineteen07::{perform_work, DAY_7_DATA};
+	let data: Vec<i64> = Vec::from(DAY_7_DATA);
+	c.bench_function("2019-07 Part 1", |b| b.iter(|| perform_work(black_box(data.clone()), black_box(0..=4), black_box(false))));
+	c.bench_function("2019-07 Part 2", |b| b.iter(|| perform_work(black_box(data.clone()), black_box(5..=9), black_box(true))));
+}
+
 pub fn twenty22(c: &mut Criterion) {
 	use aoc_2020::day22::{Code};
 	let code: Code = Code{};
@@ -68,5 +75,5 @@ pub fn twenty25(c: &mut Criterion) {
     c.bench_function("2020-25 Only Part", |b| b.iter(|| code.run()));
 }
 
-criterion_group!(benches, ninteen01, ninteen02, ninteen03, ninteen04, ninteen05, ninteen06, twenty22, twenty23, twenty24, twenty25);
+criterion_group!(benches, ninteen07, ninteen01, ninteen02, ninteen03, ninteen04, ninteen05, ninteen06, twenty22, twenty23, twenty24, twenty25);
 criterion_main!(benches);
