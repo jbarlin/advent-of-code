@@ -9,22 +9,26 @@ pub enum State {
 	Stopped,
 	Reading,
 }
+
 impl Default for State {
 	fn default() -> Self {
 		State::Ready
 	}
 }
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
 	Position = 0,
-	Immidiate = 1,
+	Immediate = 1,
+	Relative = 2,
 }
 
 impl Mode {
 	fn convert_int(value: NumType) -> Mode {
 		match value {
 			0 => Mode::Position,
-			1 => Mode::Immidiate,
+			1 => Mode::Immediate,
+			2 => Mode::Relative,
 			_ => unreachable!(),
 		}
 	}
@@ -35,15 +39,6 @@ impl Default for Mode {
 	}
 }
 
-#[derive(Debug, Clone)]
-pub struct IntCodeVM {
-	pub memory: Memory,
-	pub register: usize,
-	pub state: State,
-	pub mode: Mode,
-	input: Rc<RefCell<VecDeque<NumType>>>,
-	output: Rc<RefCell<VecDeque<NumType>>>,
-}
 pub enum Opcode {
 	Add = 1,
 	Multiply = 2,
@@ -53,6 +48,7 @@ pub enum Opcode {
 	JumpIfFalse = 6,
 	LessThan = 7,
 	Equals = 8,
+	AdjustRel = 9,
 	Stop = 99,
 }
 
@@ -67,9 +63,39 @@ impl Opcode {
 			6 => Opcode::JumpIfFalse,
 			7 => Opcode::LessThan,
 			8 => Opcode::Equals,
+			9 => Opcode::AdjustRel,
 			99 => Opcode::Stop,
 			_ => panic!("Not a valid op code - {}", value),
 		}
+	}
+}
+
+#[derive(Debug, Clone)]
+pub struct IntCodeVM {
+	pub memory: Memory,
+	pub register: usize,
+	pub state: State,
+	pub mode: Mode,
+	pub relative: NumType,
+	input: Rc<RefCell<VecDeque<NumType>>>,
+	output: Rc<RefCell<VecDeque<NumType>>>,
+}
+
+fn safer_unsigned_add(u: usize, i: NumType) -> usize{
+	if i.is_negative() {
+        u.checked_sub(i.wrapping_abs() as u64 as usize).unwrap()
+    } else {
+        u.checked_add(i as usize).unwrap()
+    }
+}
+
+fn signed_add_to_unsigned(a: NumType, b: NumType) -> usize {
+	if a.is_negative() && b.is_negative(){
+		panic!("Cannot add two negative numbers to make an unsigned number");
+	}else if a.is_negative(){
+		safer_unsigned_add(b as usize, a)
+	}else{
+		safer_unsigned_add(a as usize, b)
 	}
 }
 
@@ -80,6 +106,7 @@ impl IntCodeVM {
 		Self {
 			memory,
 			register: 0,
+			relative: 0,
 			state: State::default(),
 			mode: Mode::default(),
 			input: Rc::new(RefCell::new(inp)),
@@ -92,6 +119,7 @@ impl IntCodeVM {
 		Self {
 			memory,
 			register: 0,
+			relative: 0,
 			state: State::default(),
 			mode: Mode::default(),
 			input: input_from.output(),
@@ -127,10 +155,9 @@ impl IntCodeVM {
 				State::Reading => {
 					if self.input.borrow().len() > 0 {
 						self.state = State::Ready;
-					}else {
+					} else {
 						break;
 					}
-					
 				}
 			}
 		}
@@ -138,17 +165,39 @@ impl IntCodeVM {
 
 	fn read_mem(&self, index: usize, mode: Mode) -> NumType {
 		match mode {
-			Mode::Immidiate => *self.memory.get(index).unwrap_or(&0),
+			Mode::Immediate => *self.memory.get(index).unwrap_or(&0),
 			Mode::Position => *self
 				.memory
 				.get(*self.memory.get(index).unwrap_or(&0) as usize)
 				.unwrap_or(&0),
+			Mode::Relative => {
+				let oindx = *self.memory.get(index).unwrap_or(&0);
+				let nindx = signed_add_to_unsigned(oindx, self.relative);
+				return *self
+					.memory
+					.get(nindx)
+					.unwrap_or(&0);
+			}
 		}
 	}
+
 	fn write_mem(&mut self, index: usize, mode: Mode, value: NumType) {
-		let rel_index = self.memory[index];
 		match mode {
-			Mode::Position => self.memory[rel_index as usize] = value,
+			Mode::Position => {
+				let rel_index = self.read_mem(index, Mode::Immediate) as usize;
+				if self.memory.len() <= rel_index {
+					self.memory.resize(rel_index + 1, 0);
+				}
+				self.memory[rel_index] = value
+			}
+			Mode::Relative => {
+				let rel_index = self.read_mem(index, Mode::Immediate);
+				let nindx = signed_add_to_unsigned(rel_index, self.relative);
+				if self.memory.len() <= nindx {
+					self.memory.resize(nindx + 1, 0);
+				}
+				self.memory[nindx] = value
+			}
 			_ => unreachable!(),
 		}
 	}
@@ -179,6 +228,11 @@ impl IntCodeVM {
 			Opcode::Stop => {
 				self.state = State::Stopped;
 				self.register + 1
+			}
+			Opcode::AdjustRel => {
+				let adjust_by = self.read_mem(self.register + 1, modes_find());
+				self.relative += adjust_by;
+				self.register + 2
 			}
 			Opcode::Input => {
 				let opt: Option<NumType> = self.input.borrow_mut().pop_front();
@@ -232,16 +286,16 @@ impl IntCodeVM {
 		return;
 	}
 
-    /// Get a reference to the int code v m's input.
-    pub fn input(&self) -> Rc<RefCell<VecDeque<NumType>>> {
-        Rc::clone(&self.input)
-    }
+	/// Get a reference to the int code v m's input.
+	pub fn input(&self) -> Rc<RefCell<VecDeque<NumType>>> {
+		Rc::clone(&self.input)
+	}
 
-	pub fn network_to(&mut self, other: &IntCodeVM){
+	pub fn network_to(&mut self, other: &IntCodeVM) {
 		self.input = other.output();
 	}
 
-	pub fn is_stopped(&self) -> bool{
+	pub fn is_stopped(&self) -> bool {
 		matches!(self.state, State::Stopped)
 	}
 }
@@ -251,8 +305,30 @@ mod tests {
 	use super::*;
 
 	#[test]
-	fn test_egs_d7_b(){
-		let memory_a = vec![3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5];
+	fn test_egs_d9_a(){
+		let memory_a = vec![1102,34915192,34915192,7,4,7,99,0];
+		let mut vma = IntCodeVM::new(memory_a);
+		vma.run_all();
+		let output_a = vma.output().take();
+		assert_eq!(1,output_a.len());
+		assert_eq!(16, output_a[0].to_string().len());
+
+		let mut memory_b = vec![109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99];
+		let mut vmb = IntCodeVM::new(memory_b.clone());
+		vmb.run_all();
+		let mut output_b = vmb.output().take();
+		assert_eq!(memory_b.len(), output_b.len());
+		for _i in 0..16{
+			assert_eq!(memory_b.pop(),output_b.pop_back());
+		}
+	}
+
+	#[test]
+	fn test_egs_d7_b() {
+		let memory_a = vec![
+			3, 26, 1001, 26, -4, 26, 3, 27, 1002, 27, 2, 27, 1, 27, 26, 27, 4, 27, 1001, 28, -1,
+			28, 1005, 28, 6, 99, 0, 0, 5,
+		];
 		let mut vmaa = IntCodeVM::new(memory_a.clone());
 		let mut vmab = IntCodeVM::new_networked(memory_a.clone(), &vmaa);
 		let mut vmac = IntCodeVM::new_networked(memory_a.clone(), &vmab);
@@ -265,23 +341,29 @@ mod tests {
 		vmac.push_input(7);
 		vmad.push_input(6);
 		vmae.push_input(5);
-		loop{
+		loop {
 			vmaa.run_all();
 			vmab.run_all();
 			vmac.run_all();
 			vmad.run_all();
 			vmae.run_all();
 
-			if vmaa.is_stopped() && vmab.is_stopped() && vmac.is_stopped() && vmad.is_stopped() && vmae.is_stopped() {
+			if vmaa.is_stopped()
+				&& vmab.is_stopped()
+				&& vmac.is_stopped()
+				&& vmad.is_stopped()
+				&& vmae.is_stopped()
+			{
 				break;
 			}
 		}
-		assert_eq!(139629729,vmae.output().borrow_mut().pop_front().unwrap());
+		assert_eq!(139629729, vmae.output().borrow_mut().pop_front().unwrap());
 
-
-		let memory_b = vec![3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,
-		-5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,
-		53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10];
+		let memory_b = vec![
+			3, 52, 1001, 52, -5, 52, 3, 53, 1, 52, 56, 54, 1007, 54, 5, 55, 1005, 55, 26, 1001, 54,
+			-5, 54, 1105, 1, 12, 1, 53, 54, 53, 1008, 54, 0, 55, 1001, 55, 1, 55, 2, 53, 55, 53, 4,
+			53, 1001, 56, -1, 56, 1005, 56, 6, 99, 0, 0, 0, 0, 10,
+		];
 		let mut vmba = IntCodeVM::new(memory_b.clone());
 		let mut vmbb = IntCodeVM::new_networked(memory_b.clone(), &vmba);
 		let mut vmbc = IntCodeVM::new_networked(memory_b.clone(), &vmbb);
@@ -295,23 +377,29 @@ mod tests {
 		vmbd.push_input(5);
 		vmbe.push_input(6);
 		vmba.run_all();
-		loop{
+		loop {
 			vmba.run_all();
 			vmbb.run_all();
 			vmbc.run_all();
 			vmbd.run_all();
 			vmbe.run_all();
-			if vmba.is_stopped() && vmbb.is_stopped() && vmbc.is_stopped() && vmbd.is_stopped() && vmbe.is_stopped() {
+			if vmba.is_stopped()
+				&& vmbb.is_stopped()
+				&& vmbc.is_stopped()
+				&& vmbd.is_stopped()
+				&& vmbe.is_stopped()
+			{
 				break;
 			}
 		}
-		assert_eq!(18216,vmbe.output().borrow_mut().pop_front().unwrap());
+		assert_eq!(18216, vmbe.output().borrow_mut().pop_front().unwrap());
 	}
 
-
 	#[test]
-	fn test_egs_d7_a(){
-		let memory_a = vec![3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0];
+	fn test_egs_d7_a() {
+		let memory_a = vec![
+			3, 15, 3, 16, 1002, 16, 10, 16, 1, 16, 15, 15, 4, 15, 99, 0, 0,
+		];
 		let mut vmaa = IntCodeVM::new(memory_a.clone());
 		let mut vmab = IntCodeVM::new_networked(memory_a.clone(), &vmaa);
 		let mut vmac = IntCodeVM::new_networked(memory_a.clone(), &vmab);
@@ -333,10 +421,12 @@ mod tests {
 		assert!(vmad.is_stopped());
 		vmae.run_all();
 		assert!(vmae.is_stopped());
-		assert_eq!(43210,vmae.output().borrow_mut().pop_front().unwrap());
+		assert_eq!(43210, vmae.output().borrow_mut().pop_front().unwrap());
 
-
-		let memory_b = vec![3,23,3,24,1002,24,10,24,1002,23,-1,23,101,5,23,23,1,24,23,23,4,23,99,0,0];
+		let memory_b = vec![
+			3, 23, 3, 24, 1002, 24, 10, 24, 1002, 23, -1, 23, 101, 5, 23, 23, 1, 24, 23, 23, 4, 23,
+			99, 0, 0,
+		];
 		let mut vmba = IntCodeVM::new(memory_b.clone());
 		let mut vmbb = IntCodeVM::new_networked(memory_b.clone(), &vmba);
 		let mut vmbc = IntCodeVM::new_networked(memory_b.clone(), &vmbb);
@@ -358,10 +448,12 @@ mod tests {
 		assert!(vmbd.is_stopped());
 		vmbe.run_all();
 		assert!(vmbe.is_stopped());
-		assert_eq!(54321,vmbe.output().borrow_mut().pop_front().unwrap());
+		assert_eq!(54321, vmbe.output().borrow_mut().pop_front().unwrap());
 
-
-		let memory_c = vec![3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0];
+		let memory_c = vec![
+			3, 31, 3, 32, 1002, 32, 10, 32, 1001, 31, -2, 31, 1007, 31, 0, 33, 1002, 33, 7, 33, 1,
+			33, 31, 31, 1, 32, 31, 31, 4, 31, 99, 0, 0, 0,
+		];
 		let mut vmca = IntCodeVM::new(memory_c.clone());
 		let mut vmcb = IntCodeVM::new_networked(memory_c.clone(), &vmca);
 		let mut vmcc = IntCodeVM::new_networked(memory_c.clone(), &vmcb);
@@ -383,7 +475,7 @@ mod tests {
 		assert!(vmcd.is_stopped());
 		vmce.run_all();
 		assert!(vmce.is_stopped());
-		assert_eq!(65210,vmce.output().borrow_mut().pop_front().unwrap());
+		assert_eq!(65210, vmce.output().borrow_mut().pop_front().unwrap());
 	}
 
 	#[test]

@@ -30,6 +30,8 @@ impl Day {
         201905 => Left(&nineteen05::Code),
         201906 => Right(&nineteen06::Code),
         201907 => Left(&nineteen07::Code),
+        201908 => Left(&nineteen08::Code),
+        201909 => Left(&nineteen09::Code),
         202022 => Left(&day22::Code),
         202023 => Left(&day23::Code),
         202024 => Left(&day24::Code),
