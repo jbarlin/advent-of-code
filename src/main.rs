@@ -1,3 +1,4 @@
+#![feature(drain_filter)]
 use color_eyre::eyre::Result;
 use structopt::StructOpt;
 

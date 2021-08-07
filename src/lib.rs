@@ -1,3 +1,4 @@
+#![feature(drain_filter)]
 pub trait SinglePart{
     fn run(&self) -> String;
 }
@@ -27,6 +28,7 @@ pub mod solutions {
     pub mod nineteen07;
     pub mod nineteen08;
     pub mod nineteen09;
+    pub mod nineteen10;
     pub mod day22;
     pub mod day23;
     pub mod day24;
