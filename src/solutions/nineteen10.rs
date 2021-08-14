@@ -137,6 +137,7 @@ fn observable_asteroids(map: Vec<RelAsteroid>) -> Vec<RelAsteroid> {
 	}
 	return seen;
 }
+
 fn find_best_asteroid(map: Vec<Asteroid>) -> (Asteroid, Vec<RelAsteroid>) {
 	map.iter()
 		.enumerate()
@@ -149,24 +150,6 @@ fn find_best_asteroid(map: Vec<Asteroid>) -> (Asteroid, Vec<RelAsteroid>) {
 		})
 		.max_by(|a, b| a.1.len().cmp(&b.1.len()))
 		.unwrap()
-}
-
-fn safer_unsigned_add(u: u16, i: i16) -> u16 {
-	if i.is_negative() {
-		u.checked_sub(i.wrapping_abs() as u64 as u16).unwrap()
-	} else {
-		u.checked_add(i as u16).unwrap()
-	}
-}
-
-fn signed_add_to_unsigned(a: i16, b: i16) -> u16 {
-	if a.is_negative() && b.is_negative() {
-		panic!("Cannot add two negative numbers to make an unsigned number");
-	} else if a.is_negative() {
-		safer_unsigned_add(b as u16, a)
-	} else {
-		safer_unsigned_add(a as u16, b)
-	}
 }
 
 fn part_2_solver(map: Vec<Asteroid>, part_a_asteroid: &Asteroid) -> usize {

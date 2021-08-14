@@ -13,7 +13,8 @@ Thanks Criterion! These are the mean times, more details would be included if yo
 | 2019 02 | 922.28 ns | 1.9178 ms | 1.6073 us | 3.3455 ms |
 | 2019 05 | 1.3979 us | 1.6357 us | 2.0983 us | 2.7135 us |
 | 2019 07 | 251.91 us | 362.32 us | 163.17 us | 237.86 us |
-| 2019 09 | 5.9426 us | 6.1065 us us | N/A | N/A |
+| 2019 09 | 5.9426 us | 2.7631 us | N/A | N/A |
+| 2019 11 | 2.1338 ms | 158.19 us | N/A | N/A |
 
 ### Non-IntCode
 
@@ -28,3 +29,4 @@ Thanks Criterion! These are the mean times, more details would be included if yo
 | 2019 04 | N/A | 23.571 us |
 | 2019 06 | 8.5865 ms | 365.37 us |
 | 2019 08 | 518.81 us | 480.96 us |
+| 2019 10 | N/A | 11.892 ms |
