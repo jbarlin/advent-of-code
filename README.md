@@ -9,7 +9,7 @@ Thanks Criterion! These are the mean times, more details would be included if yo
 ### IntCode
 
 | Day     | Original Part 1 | Original Part 2 | After D9 Part 1 | After D9 Part 2 |
-| ------- | --------------- | --------------- | --------------- |
+| ------- | --------------- | --------------- | --------------- | --------------- |
 | 2019 02 | 922.28 ns       | 1.9178 ms       | 1.6073 us       | 3.3455 ms       |
 | 2019 05 | 1.3979 us       | 1.6357 us       | 2.0983 us       | 2.7135 us       |
 | 2019 07 | 251.91 us       | 362.32 us       | 163.17 us       | 237.86 us       |
