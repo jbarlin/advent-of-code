@@ -31,6 +31,8 @@ pub mod solutions {
     pub mod nineteen10;
     pub mod nineteen11;
     pub mod nineteen12;
+
+    pub mod nineteen14;
     pub mod day22;
     pub mod day23;
     pub mod day24;

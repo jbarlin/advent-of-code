@@ -1,36 +1,37 @@
+use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::black_box;
+
 use aoc_2020::AoCDay;
 use aoc_2020::SinglePart;
-use criterion::black_box;
-use criterion::{criterion_group, criterion_main, Criterion};
 
 pub fn ninteen01(c: &mut Criterion) {
 	use aoc_2020::nineteen01::Code;
-	let code: Code = Code{};
-    c.bench_function("2019-01 Part 1", |b| b.iter(|| code.part1()));
+	let code: Code = Code {};
+	c.bench_function("2019-01 Part 1", |b| b.iter(|| code.part1()));
 	c.bench_function("2019-01 Part 2", |b| b.iter(|| code.part2()));
 }
 
 pub fn ninteen02(c: &mut Criterion) {
 	use aoc_2020::nineteen02::Code;
-	let code: Code = Code{};
-    c.bench_function("2019-02 Part 1", |b| b.iter(|| code.part1()));
+	let code: Code = Code {};
+	c.bench_function("2019-02 Part 1", |b| b.iter(|| code.part1()));
 	c.bench_function("2019-02 Part 2", |b| b.iter(|| code.part2()));
 }
 
 pub fn ninteen03(c: &mut Criterion) {
 	use aoc_2020::nineteen03::Code;
-	let code: Code = Code{};
-    c.bench_function("2019-03 Only Part", |b| b.iter(|| code.run()));
+	let code: Code = Code {};
+	c.bench_function("2019-03 Only Part", |b| b.iter(|| code.run()));
 }
 
 pub fn ninteen04(c: &mut Criterion) {
 	use aoc_2020::nineteen04::count_passwords_between;
-    c.bench_function("2019-04 Action function", |b| b.iter(|| count_passwords_between(black_box(168630), black_box(718098))));
+	c.bench_function("2019-04 Action function", |b| b.iter(|| count_passwords_between(black_box(168630), black_box(718098))));
 }
 
 pub fn ninteen05(c: &mut Criterion) {
 	use aoc_2020::nineteen05::{Code};
-	let code: Code = Code{};
+	let code: Code = Code {};
 	c.bench_function("2019-05 Part 1", |b| b.iter(|| code.part1()));
 	c.bench_function("2019-05 Part 2", |b| b.iter(|| code.part2()));
 }
@@ -62,7 +63,7 @@ pub fn ninteen09(c: &mut Criterion) {
 
 pub fn ninteen10(c: &mut Criterion) {
 	use aoc_2020::nineteen10::{solve, FL_CONT};
-    c.bench_function("2019-10 Action function", |b| b.iter(|| solve(black_box(FL_CONT))));
+	c.bench_function("2019-10 Action function", |b| b.iter(|| solve(black_box(FL_CONT))));
 }
 
 pub fn ninteen11(c: &mut Criterion) {
@@ -74,47 +75,53 @@ pub fn ninteen11(c: &mut Criterion) {
 pub fn ninteen12(c: &mut Criterion) {
 	use aoc_2020::nineteen12::{part_1_impl, part_2_impl};
 	c.bench_function("2019-12 Part 1", |b| b.iter(|| part_1_impl(
-		black_box((-17,9,-5)),
-		black_box((-1,7,13)),
-		black_box((-19,12,5)),
-		black_box((-6,-6,-4))
+		black_box((-17, 9, -5)),
+		black_box((-1, 7, 13)),
+		black_box((-19, 12, 5)),
+		black_box((-6, -6, -4)),
 	)));
 	c.bench_function("2019-12 Part 2", |b| b.iter(|| part_2_impl(
-		black_box((-17,9,-5)),
-		black_box((-1,7,13)),
-		black_box((-19,12,5)),
-		black_box((-6,-6,-4))
+		black_box((-17, 9, -5)),
+		black_box((-1, 7, 13)),
+		black_box((-19, 12, 5)),
+		black_box((-6, -6, -4)),
 	)));
+}
+
+pub fn ninteen14(c: &mut Criterion) {
+	use aoc_2020::nineteen14::{part_1_impl, part_2_impl, DAY_14_DATA};
+	c.bench_function("2019-14 Part 1", |b| b.iter(|| part_1_impl(black_box(DAY_14_DATA))));
+	c.bench_function("2019-14 Part 2", |b| b.iter(|| part_2_impl(black_box(DAY_14_DATA))));
 }
 
 pub fn twenty22(c: &mut Criterion) {
 	use aoc_2020::day22::{Code};
-	let code: Code = Code{};
+	let code: Code = Code {};
 	c.bench_function("2020-22 Part 1", |b| b.iter(|| code.part1()));
 	c.bench_function("2020-22 Part 2", |b| b.iter(|| code.part2()));
 }
 
 pub fn twenty23(c: &mut Criterion) {
 	use aoc_2020::day23::{Code};
-	let code: Code = Code{};
+	let code: Code = Code {};
 	c.bench_function("2020-23 Part 1", |b| b.iter(|| code.part1()));
 	c.bench_function("2020-23 Part 2", |b| b.iter(|| code.part2()));
 }
 
 pub fn twenty24(c: &mut Criterion) {
 	use aoc_2020::day24::{Code};
-	let code: Code = Code{};
+	let code: Code = Code {};
 	c.bench_function("2020-24 Part 1", |b| b.iter(|| code.part1()));
 	c.bench_function("2020-24 Part 2", |b| b.iter(|| code.part2()));
 }
 
 pub fn twenty25(c: &mut Criterion) {
 	use aoc_2020::day25::Code;
-	let code: Code = Code{};
-    c.bench_function("2020-25 Only Part", |b| b.iter(|| code.run()));
+	let code: Code = Code {};
+	c.bench_function("2020-25 Only Part", |b| b.iter(|| code.run()));
 }
 
-criterion_group!(benches, ninteen10, ninteen12 ,ninteen11, ninteen07,
+criterion_group!(benches, ninteen14, ninteen10, ninteen12 ,ninteen11, ninteen07,
 	 ninteen08, ninteen09, ninteen01, ninteen02, ninteen03, 
 	 ninteen04, ninteen05, ninteen06, twenty22, twenty23, 
 	 twenty24, twenty25);

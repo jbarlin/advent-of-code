@@ -23,10 +23,6 @@ struct Moon {
 }
 
 impl Moon {
-	
-	fn new(x: Axis, y: Axis, z: Axis) -> Moon {
-		return Moon { x, y, z };
-	}
 
 	fn tupled_new(positions: (i64, i64, i64)) -> Moon {
 		return Moon {
