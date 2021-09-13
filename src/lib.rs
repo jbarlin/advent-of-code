@@ -33,6 +33,7 @@ pub mod solutions {
     pub mod nineteen12;
     pub mod nineteen13;
     pub mod nineteen14;
+    pub mod nineteen15;
     pub mod day22;
     pub mod day23;
     pub mod day24;
@@ -42,4 +43,6 @@ pub mod solutions {
 pub use solutions::*;
 pub mod intcode;
 pub mod image_layer;
+mod coords;
+mod direction;
 

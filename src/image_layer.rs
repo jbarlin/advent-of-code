@@ -1,3 +1,8 @@
+use std::cmp;
+use std::collections::HashMap;
+
+use crate::coords::Coords;
+
 const BLOCK: &str = "█";
 const DARK_MODE: bool = true;
 
@@ -6,6 +11,7 @@ pub enum Pixel {
 	Black = 0,
 	White = 1,
 	Transparent = 2,
+	Star = 3
 }
 
 impl Pixel {
@@ -13,6 +19,7 @@ impl Pixel {
 		match value {
 			'0' => Pixel::Black,
 			'1' => Pixel::White,
+			'*' => Pixel::Star,
 			_ => Pixel::Transparent,
 		}
 	}
@@ -30,6 +37,38 @@ pub struct ImageLayer {
 }
 
 impl ImageLayer {
+
+	pub fn from_hashmap(map: HashMap<Coords, Pixel>) -> ImageLayer{
+		let mut min_x = 0;
+		let mut max_x = 0;
+		let mut min_y = 0;
+		let mut max_y = 0;
+		for key in map.keys() {
+			min_x = cmp::min(min_x, key.x);
+			max_x = cmp::max(max_x, key.x);
+			min_y = cmp::min(min_y, key.y);
+			max_y = cmp::max(max_y, key.y);
+		}
+		let mut pixels: Vec<Vec<Pixel>> = Vec::new();
+		for y in min_y..=max_y {
+			let mut x_pix: Vec<Pixel> = Vec::new();
+			for x in min_x..=max_x {
+				let coords = Coords{
+					x, y
+				};
+				let r: Option<&Pixel> = map.get(&coords);
+				x_pix.push(match r {
+					Some(x) => *x,
+					None => Pixel::Black,
+				})
+			}
+			pixels.push(x_pix);
+		}
+		pixels.reverse();
+		let il: ImageLayer = ImageLayer { pixels };
+		return il;
+	}
+
 	pub fn count_of_pixels(&self) -> (usize, usize, usize) {
 		let mut blacks = 0;
 		let mut whites = 0;
@@ -74,6 +113,9 @@ impl ImageLayer {
 							//Non-breaking space
 							output.push_str(" ");
 						}
+					},
+					Pixel::Star => {
+						output.push_str("*")
 					}
 					_ => unreachable!(),
 				}
