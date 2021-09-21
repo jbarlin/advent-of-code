@@ -19,7 +19,6 @@ enum Quadrant {
 struct Asteroid {
 	xcoord: u16,
 	ycoord: u16,
-	denoted: String,
 }
 
 #[derive(Debug, Clone)]
@@ -31,7 +30,6 @@ struct RelAsteroid {
 	dist: f64,
 	quad: Quadrant,
 	angle: f64,
-	denoted: String,
 }
 
 impl Asteroid {
@@ -74,8 +72,7 @@ impl Asteroid {
 			oy: self.ycoord,
 			dist,
 			quad,
-			angle,
-			denoted: self.denoted.clone(),
+			angle
 		};
 	}
 }
@@ -92,7 +89,6 @@ fn create_map(input: &str) -> Vec<Asteroid> {
 				map.push(Asteroid {
 					xcoord: (xcoord - 1) as u16,
 					ycoord: ycoord as u16,
-					denoted: token.to_owned(),
 				})
 			}
 		}
