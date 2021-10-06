@@ -114,6 +114,16 @@ impl IntCodeVM {
 		}
 	}
 
+	pub fn new_run_all_output(memory: Memory) -> VecDeque<NumType> {
+		let mut vm = IntCodeVM::new(memory);
+		vm.run_all();
+		if vm.is_stopped() {
+			return vm.output().take();
+		}else{
+			panic!("Cannot deal with input as new_run_all_output");
+		}
+	}
+
 	pub fn new_networked(memory: Memory, input_from: &IntCodeVM) -> Self {
 		let out: VecDeque<NumType> = VecDeque::new();
 		Self {
