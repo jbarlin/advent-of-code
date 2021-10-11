@@ -44,4 +44,16 @@ impl Coords {
 			diff_x
 		}
 	}
+	pub fn add_y(&self, y: NumType) -> Coords{
+		Coords{
+			x: self.x,
+			y: self.y + y
+		}
+	}
+	pub fn add_x(&self, x: NumType) -> Coords{
+		Coords{
+			x: self.x + x,
+			y: self.y
+		}
+	}
 }
