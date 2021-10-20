@@ -64,7 +64,7 @@ impl ImageLayer {
 			}
 			pixels.push(x_pix);
 		}
-		pixels.reverse();
+		//pixels.reverse();
 		let il: ImageLayer = ImageLayer { pixels };
 		return il;
 	}
@@ -116,7 +116,10 @@ impl ImageLayer {
 					},
 					Pixel::Star => {
 						output.push_str("*")
-					}
+					},
+					Pixel::Transparent => {
+						output.push_str("@")
+					},
 					_ => unreachable!(),
 				}
 			}

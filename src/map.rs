@@ -1,32 +1,15 @@
-use std::cmp::Ordering;
-use std::collections::{BinaryHeap, BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use itertools::Itertools;
 
+use crate::cell::CellType;
 use crate::coords::Coords;
 use crate::direction::Direction;
+use crate::image_layer::{ImageLayer, Pixel};
 use crate::intcode::NumType;
 
 type Map<A, B> = BTreeMap<A, B>;
 type Set<A> = BTreeSet<A>;
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum CellType {
-	Space,
-	NormalBarrier,
-	SpecialBarrier(char),
-	Goal(char),
-	Start(char),
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Ord, PartialOrd, Eq)]
-pub enum GraphType {
-	Barrier(char),
-	Goal(char),
-	Start(char),
-}
-
-impl CellType {}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct IntersectionTarget {
@@ -37,7 +20,7 @@ pub struct IntersectionTarget {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TwoDMap {
-	cell_map: Map<Coords, CellType>,
+	pub(crate) cell_map: Map<Coords, CellType>,
 	intersections: Map<Coords, Vec<IntersectionTarget>>,
 }
 
@@ -46,220 +29,6 @@ pub struct Path {
 	pub path: Vec<Coords>,
 	nodes_visited: Map<Coords, usize>,
 	collected_goals: Vec<char>,
-}
-
-pub struct Graph {
-	graph: Map<GraphType, Map<GraphType, usize>>,
-	goal_count: usize,
-	barrier_count: usize,
-	start_count: usize,
-}
-
-#[derive(PartialEq, Eq)]
-struct TraversalState {
-	steps: usize,
-	robots: Vec<GraphType>,
-	visited: Set<GraphType>,
-}
-
-impl TraversalState {
-	fn goals_met(&self) -> Set<&GraphType> {
-		self.visited.iter().filter(|f| match f {
-			GraphType::Goal(_) => true,
-			_ => false
-		}).collect()
-	}
-}
-
-impl Ord for TraversalState {
-	fn cmp(&self, other: &Self) -> Ordering {
-		other
-			.steps
-			.cmp(&self.steps)
-			.then(self.visited.len().cmp(&other.visited.len()))
-	}
-}
-
-impl PartialOrd for TraversalState {
-	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-		Some(self.cmp(other))
-	}
-}
-
-impl Graph {
-	pub fn from_two_d_map(map: TwoDMap) -> Graph {
-		let mut graph: Map<GraphType, Map<GraphType, usize>> = Map::new();
-		for (coords, cell) in map.cell_map.iter() {
-			if let CellType::Goal(ch) = cell {
-				let edges = Graph::find_edges_for(&map.cell_map, *coords);
-				graph.insert(GraphType::Goal(*ch), edges);
-			} else if let CellType::Start(ch) = cell {
-				let edges = Graph::find_edges_for(&map.cell_map, *coords);
-				graph.insert(GraphType::Start(*ch), edges);
-			} else if let CellType::SpecialBarrier(ch) = cell {
-				let edges = Graph::find_edges_for(&map.cell_map, *coords);
-				graph.insert(GraphType::Barrier(*ch), edges);
-			}
-		}
-		let goal_count = map.cell_map.iter().filter(|f| match (*f).1 {
-			CellType::Goal(_) => true,
-			_ => false
-		}).count();
-		let start_count = map.cell_map.iter().filter(|f| match (*f).1 {
-			CellType::Start(_) => true,
-			_ => false
-		}).count();
-		let barrier_count = map.cell_map.iter().filter(|f| match (*f).1 {
-			CellType::SpecialBarrier(_) => true,
-			_ => false
-		}).count();
-		return Graph {
-			graph,
-			goal_count,
-			barrier_count,
-			start_count,
-		};
-	}
-	fn find_edges_for(map: &Map<Coords, CellType>, coords: Coords) -> Map<GraphType, usize> {
-		//So basically, we want a map from here to all the other nodes we can hit that are of any interest
-		let mut seen: Set<Coords> = Set::new();
-		let mut retme: Map<GraphType, usize> = Map::new();
-		let mut queue: VecDeque<(Coords, usize)> = VecDeque::new();
-		queue.push_back((coords, 0));
-		while let Some((curr, steps)) = queue.pop_front() {
-			let adj = [
-				curr.move_direction(Direction::North),
-				curr.move_direction(Direction::South),
-				curr.move_direction(Direction::East),
-				curr.move_direction(Direction::West),
-			];
-			for next in adj {
-				if let Some(kind) = map.get(&next) {
-					if !seen.contains(&next) {
-						seen.insert(next);
-						match kind {
-							CellType::Space => {
-								queue.push_back((next, steps + 1));
-							}
-							CellType::SpecialBarrier(ch) => {
-								retme.insert(GraphType::Barrier(*ch), steps + 1);
-							}
-							CellType::Goal(ch) => {
-								retme.insert(GraphType::Goal(*ch), steps + 1);
-							}
-							CellType::Start(ch) => {
-								retme.insert(GraphType::Start(*ch), steps + 1);
-							}
-							_ => {}
-						}
-					}
-				}
-			}
-		}
-
-		return retme;
-	}
-
-	//Something similar to Dijkstra?
-	pub fn traverse(self) -> usize {
-		let mut queue = BinaryHeap::new();
-
-		let robots = self.graph
-			.keys()
-			.filter(|f| match f {
-				GraphType::Start(_) => true,
-				_ => false
-			})
-			.map(|f| *f)
-			.collect_vec();
-
-		let start = TraversalState {
-			steps: 0,
-			robots,
-			visited: Set::new()
-		};
-
-		let mut weights: Map<(Vec<GraphType>, Set<GraphType>), usize> = Map::new();
-
-		queue.push(start);
-
-		while let Some(current) = queue.pop(){
-			if current.goals_met().len() == self.goal_count {
-				return current.steps;
-			}
-			if let Some(&best_seen) = weights.get(&(current.robots.clone(), current.visited.clone())){
-				if current.steps > best_seen {
-					continue;
-				}
-			}
-			for (number, _) in current.robots.iter().enumerate(){
-				let mut seen_weights: Map<GraphType, usize> = Map::new();
-				for &coords in self.graph.keys(){
-					seen_weights.insert(coords, usize::MAX);
-				}
-				let mut heap: BinaryHeap<(usize, GraphType)> = BinaryHeap::new();
-				*seen_weights.get_mut(&current.robots[number]).unwrap() = 0;
-				heap.push((0_usize, current.robots[number]));
-				let mut possible_keys: Set<GraphType> = Set::new();
-				while let Some((current_steps, current_tile)) = heap.pop(){
-					match current_tile {
-						GraphType::Goal(_) => {
-							if !current.visited.contains(&current_tile) {
-								let ct = current_tile.clone();
-								possible_keys.insert(ct);
-							}
-						}
-						_ => {}
-					}
-					if current_steps > seen_weights[&current_tile]{
-						continue;
-					}
-					for (&next, &steps) in self.graph.get(&current_tile).unwrap().iter(){
-						match next {
-							GraphType::Barrier(v) => {
-								if !current
-									.visited
-									.contains(&GraphType::Goal(v.to_ascii_lowercase()))
-								{
-									//Can't cross this barrier I think
-									continue;
-								}
-							},
-							_ => {}
-						}
-						let pair = (current_steps + steps, next);
-						if pair.0 < seen_weights[&next]{
-							seen_weights.insert(next, pair.0);
-							heap.push(pair);
-						}
-					}
-				}
-				let real_keys: Vec<(GraphType, usize)> = possible_keys.into_iter()
-					.map(|node| (node, seen_weights[&node]))
-					.collect();
-				for &(next_node, steps) in real_keys.iter(){
-					let mut new_visited: Set<GraphType> = current.visited.clone();
-					new_visited.insert(next_node);
-					let mut new_robots = current.robots.clone();
-					new_robots[number] = next_node;
-					let new_steps = current.steps + steps;
-					let known = weights
-						.entry((new_robots.clone(), new_visited.clone()))
-						.or_insert(usize::MAX);
-					if new_steps < *known{
-						*known = new_steps;
-						let new_state = TraversalState{
-							visited: new_visited,
-							robots: new_robots,
-							steps: new_steps
-						};
-						queue.push(new_state);
-					}
-				}
-			}
-		}
-		usize::MAX
-	}
 }
 
 impl Path {
@@ -407,6 +176,24 @@ impl TwoDMap {
 		(TwoDMap::from_map(cell_map), curr_lcs)
 	}
 
+	pub fn print(&self){
+		let mx = self.cell_map
+			.iter()
+			.map(|(&coord, &ct)|{
+				match ct {
+					CellType::Space => (coord, Pixel::White),
+					CellType::NormalBarrier => (coord, Pixel::Black),
+					CellType::SpecialBarrier(_) => (coord, Pixel::Black),
+					CellType::Goal(_) => (coord, Pixel::Transparent),
+					CellType::Start(_) => (coord, Pixel::Transparent),
+					CellType::WarpInner(_) => (coord, Pixel::Star),
+					CellType::WarpOuter(_) => (coord, Pixel::Star),
+				}
+			})
+			.collect();
+		println!("{}",ImageLayer::from_hashmap(mx).to_string());
+	}
+	
 	pub fn from_output_of_chars
 	(output: &mut VecDeque<NumType>, space: char, barrier: char, special_barrier: Vec<char>, special_goal: Vec<char>, curr_loc: Vec<char>)
 	 -> (TwoDMap, Vec<(Coords, char)>) {
