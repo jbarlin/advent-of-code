@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, BTreeMap, BTreeSet, VecDeque};
+use std::ops::{AddAssign, SubAssign};
 
 use itertools::Itertools;
 
@@ -30,9 +31,8 @@ pub struct Graph {
 #[derive(PartialEq, Eq, Debug)]
 struct TraversalState {
 	steps: usize,
-	robots: Vec<GraphType>,
+	robots: Vec<(GraphType, usize)>,
 	visited: Set<GraphType>,
-	depth: usize,
 }
 
 impl TraversalState {
@@ -169,17 +169,17 @@ impl Graph {
 	pub fn print(&self) {
 		self.graph
 			.iter()
-			.for_each(|(&key, values)|{
+			.for_each(|(&key, values)| {
 				print!("{:?} ->\t", key);
 				values
 					.iter()
-					.for_each(|(&kind, &dist)|{
-						print!("{:?} - {:?},\t",kind,dist);
+					.for_each(|(&kind, &dist)| {
+						print!("{:?} - {:?},\t", kind, dist);
 					});
 				println!("");
 			});
 	}
-	
+
 	pub fn traverse(self) -> usize {
 		return self.traverse_deep(false);
 	}
@@ -187,56 +187,54 @@ impl Graph {
 	//Something similar to Dijkstra?
 	pub fn traverse_deep(&self, depth_track: bool) -> usize {
 		let mut queue = BinaryHeap::new();
-
 		let robots = self.graph
 			.keys()
 			.filter(|f| match f {
 				GraphType::Start(_) => true,
 				_ => false
 			})
-			.map(|f| *f)
+			.map(|f| (*f, 0))
 			.collect_vec();
 
 		let start = TraversalState {
 			steps: 0,
 			robots,
 			visited: Set::new(),
-			depth: 0,
 		};
 
-		let mut all_weights: Map<usize, Map<(Vec<GraphType>, Set<GraphType>), usize>> = Map::new();
+		let mut weights: Map<(Vec<(GraphType, usize)>, Set<GraphType>), usize> = Map::new();
 
 		queue.push(start);
 
 		'queue: while let Some(current) = queue.pop() {
 			let curr_goals_seen_count = current.goals_met().len();
-			if curr_goals_seen_count == self.goal_count && (!depth_track || current.depth == 0) {
+			if curr_goals_seen_count == self.goal_count {
 				return current.steps;
-			} else if curr_goals_seen_count == self.goal_count && depth_track && current.depth != 0 {
+			} else if curr_goals_seen_count == self.goal_count {
 				panic!("Cannot finish maze yet not on level 0?");
 			}
-			if let None = all_weights.get(&current.depth){
-				all_weights.insert(current.depth, Map::new());
-			}
-			let mut weights = all_weights.get_mut(&current.depth).unwrap();
 			if let Some(&best_seen) = weights.get(&(current.robots.clone(), current.visited.clone())) {
 				if current.steps > best_seen {
 					continue;
 				}
 			}
-			'robots: for (number, _) in current.robots.iter().enumerate() {
+			'robots: for (number, &(robo_tile, curr_depth)) in current.robots.iter().enumerate() {
 				let mut seen_weights: Map<GraphType, usize> = Map::new();
 				for &coords in self.graph.keys() {
 					seen_weights.insert(coords, usize::MAX);
 				}
 				let mut heap: BinaryHeap<(usize, GraphType, usize)> = BinaryHeap::new();
-				*seen_weights.get_mut(&current.robots[number]).unwrap() = 0;
-				heap.push((0_usize, current.robots[number], current.depth));
+				*seen_weights.get_mut(&current.robots[number].0).unwrap() = 0;
+				heap.push((0_usize, current.robots[number].0, curr_depth));
 				let mut possible_keys: Set<GraphType> = Set::new();
 				'heappop: while let Some((current_steps, current_tile, curr_depth)) = heap.pop() {
 					match current_tile {
 						GraphType::Goal(_) => {
 							if !current.visited.contains(&current_tile) {
+								//OK, let's work out the depth here!
+								if depth_track && curr_depth != 0 {
+									continue 'heappop;
+								}
 								let ct = current_tile.clone();
 								possible_keys.insert(ct);
 							}
@@ -257,14 +255,32 @@ impl Graph {
 									//Can't cross this barrier I think
 									continue 'graph_ctile;
 								}
-							},
+							}
 							GraphType::Goal(_) => {
-								
-							},
+								if depth_track && ndepth != 0 {
+									//No
+									continue 'graph_ctile;
+								}
+							}
 							GraphType::Start(_) => {
 								continue 'graph_ctile;
-							},
-							GraphType::Warp(_, _, down) => {}
+							}
+							GraphType::Warp(_, _, down) => {
+								match current_tile {
+									GraphType::Warp(_, _, lmao) if lmao != down => {}
+									_ => {
+										if depth_track && !down && ndepth == 0 {
+											continue 'graph_ctile;
+										} else if depth_track {
+											if down {
+												ndepth.add_assign(1)
+											} else {
+												ndepth.sub_assign(1);
+											}
+										}
+									}
+								}
+							}
 						}
 						let pair = (current_steps + steps, next, ndepth);
 						if seen_weights.get(&next).is_none() {
@@ -285,24 +301,45 @@ impl Graph {
 				'rkeyloop: for &(next_node, steps) in real_keys.iter() {
 					let mut new_visited: Set<GraphType> = current.visited.clone();
 					let mut new_robots = current.robots.clone();
-					let mut new_depth = current.depth;
 					match next_node {
 						GraphType::Warp(_, _, down) => {
-							new_robots[number] = next_node;
+							match robo_tile {
+								GraphType::Warp(_, _, lmao) if lmao != down => {}
+								_ => {
+									if depth_track {
+										if curr_depth == 0 && !down {
+											continue 'rkeyloop;
+										} else {
+											if down {
+												new_robots[number] = (next_node, curr_depth + 1);
+											} else {
+												new_robots[number] = (next_node, curr_depth - 1);
+											}
+										}
+									} else {
+										new_robots[number] = (next_node, 0);
+									}
+								}
+							}
+							
 						}
 						GraphType::Start(_) => {
 							continue 'rkeyloop;
 						}
 						GraphType::Goal(_) => {
-							new_robots[number] = next_node;
+							if depth_track && curr_depth != 0 {
+								continue 'rkeyloop;
+							} else {
+								new_robots[number] = (next_node, 0);
+							}
 						}
 						_ => {
-							new_robots[number] = next_node;
+							new_robots[number] = (next_node, curr_depth);
 						}
 					}
 					new_visited.insert(next_node);
-					if new_robots[number] != next_node {
-						new_visited.insert(new_robots[number]);
+					if new_robots[number].0 != next_node {
+						new_visited.insert(new_robots[number].0);
 					}
 					let new_steps = current.steps + steps;
 					let known = weights
@@ -310,17 +347,10 @@ impl Graph {
 						.or_insert(usize::MAX);
 					if new_steps < *known {
 						*known = new_steps;
-						let n_depth = if depth_track { new_depth } else { 0 };
-						if n_depth > current.depth {
-							println!("Going down {}, {}", n_depth, current.depth);
-						}else if n_depth < current.depth {
-							println!("Going up {}, {}", n_depth, current.depth)
-						}
 						let new_state = TraversalState {
 							visited: new_visited,
 							robots: new_robots,
 							steps: new_steps,
-							depth: 0,
 						};
 						queue.push(new_state);
 					}

@@ -37,8 +37,9 @@ pub mod solutions {
     //pub mod nineteen16;
     //pub mod nineteen17;
     //pub mod nineteen18;
-    pub mod nineteen19;
-    pub mod nineteen20;
+    //pub mod nineteen19;
+    //pub mod nineteen20;
+    pub mod nineteen21;
     // pub mod day22;
     // pub mod day23;
     // pub mod day24;
@@ -47,10 +48,10 @@ pub mod solutions {
 
 pub use solutions::*;
 pub mod intcode;
-pub mod image_layer;
-mod coords;
-mod direction;
-mod map;
-mod graph;
-mod cell;
-mod torus_map;
+//pub mod image_layer;
+//mod coords;
+//mod direction;
+//mod map;
+//mod graph;
+//mod cell;
+//mod torus_map;

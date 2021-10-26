@@ -13,7 +13,9 @@ impl AoCDay for Code{
 		graph.traverse_deep(false).to_string()
 	}
 	fn part2(&self) -> String {
-		"todo!".to_string()
+		let map = Torus::str_to_map(DAY_20_DATA);
+		let graph = Graph::from_two_d_map(map);
+		graph.traverse_deep(true).to_string()
 	}
 }
 
