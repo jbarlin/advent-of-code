@@ -149,6 +149,10 @@ impl IntCodeVM {
 		Rc::clone(&self.output)
 	}
 
+	pub fn pop_output(&mut self) -> Option<NumType>{
+		self.output.borrow_mut().pop_front()
+	}
+
 	pub fn get_zero(&self) -> NumType {
 		return self.memory[0];
 	}
@@ -212,7 +216,7 @@ impl IntCodeVM {
 		}
 	}
 
-	fn run_one_command(&mut self) {
+	pub fn run_one_command(&mut self) {
 		let command = self.memory[self.register];
 
 		let opcode = Opcode::convert_int(command % 100);
@@ -296,7 +300,7 @@ impl IntCodeVM {
 		return;
 	}
 
-	/// Get a reference to the int code v m's input.
+	/// Get a reference to the int code vm's input.
 	pub fn input(&self) -> Rc<RefCell<VecDeque<NumType>>> {
 		Rc::clone(&self.input)
 	}
@@ -307,6 +311,22 @@ impl IntCodeVM {
 
 	pub fn is_stopped(&self) -> bool {
 		matches!(self.state, State::Stopped)
+	}
+
+	pub fn is_waiting(&self) -> bool {
+		matches!(self.state, State::Reading)
+	}
+
+	pub fn has_output(&self) -> bool {
+		self.has_output_amt(1)
+	}
+
+	pub fn has_input(&self) -> bool {
+		self.input.borrow().len() > 0
+	}
+
+	pub fn has_output_amt(&self, amt: usize) -> bool {
+		self.output.borrow().len() >= amt
 	}
 }
 
