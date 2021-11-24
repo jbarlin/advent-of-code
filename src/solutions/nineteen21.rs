@@ -189,7 +189,7 @@ impl AoCDay for Code{
 			.take()
 			.iter()
 			.for_each(|&b|{
-				if b < 122 {
+				if b <= 122 {
 					output.push(b as u8 as char)
 				} else {
 					b.to_string()

@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use itertools::Itertools;
+//use itertools::Itertools;
 
 use crate::cell::CellType;
 use crate::coords::Coords;
@@ -181,13 +181,14 @@ impl TwoDMap {
 			.iter()
 			.map(|(&coord, &ct)|{
 				match ct {
-					CellType::Space => (coord, Pixel::White),
-					CellType::NormalBarrier => (coord, Pixel::Black),
-					CellType::SpecialBarrier(_) => (coord, Pixel::Black),
-					CellType::Goal(_) => (coord, Pixel::Transparent),
+					CellType::Space => (coord, Pixel::Black),
+					CellType::NormalBarrier => (coord, Pixel::White),
+					CellType::SpecialBarrier(_) => (coord, Pixel::CapP),
+					CellType::Goal(_) => (coord, Pixel::LowP),
 					CellType::Start(_) => (coord, Pixel::Transparent),
 					CellType::WarpInner(_) => (coord, Pixel::Star),
 					CellType::WarpOuter(_) => (coord, Pixel::Star),
+					CellType::Items => (coord, Pixel::Star),
 				}
 			})
 			.collect();

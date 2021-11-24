@@ -11,7 +11,9 @@ pub enum Pixel {
 	Black = 0,
 	White = 1,
 	Transparent = 2,
-	Star = 3
+	Star = 3,
+	CapP = 4,
+	LowP = 5,
 }
 
 impl Pixel {
@@ -120,6 +122,12 @@ impl ImageLayer {
 					Pixel::Transparent => {
 						output.push_str("@")
 					},
+					Pixel::CapP => {
+						output.push_str("P");
+					},
+					Pixel::LowP => {
+						output.push_str("p");
+					}
 					_ => unreachable!(),
 				}
 			}

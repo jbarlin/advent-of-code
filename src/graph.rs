@@ -17,7 +17,7 @@ pub enum GraphType {
 	Barrier(char),
 	Goal(char),
 	Start(char),
-	Warp(char, char, bool),
+	Warp(char, char, bool, usize),
 }
 
 #[derive(Debug)]
@@ -87,16 +87,16 @@ impl Graph {
 					panic!("Disconnected node {:?}", coords);
 				}
 				let calc = *ix;
-				edges.insert(GraphType::Warp((calc / 100) as u8 as char, (calc % 100) as u8 as char, false), 1);
-				graph.insert(GraphType::Warp((calc / 100) as u8 as char, (calc % 100) as u8 as char, true), edges);
+				edges.insert(GraphType::Warp((calc / 100) as u8 as char, (calc % 100) as u8 as char, false, 0), 1);
+				graph.insert(GraphType::Warp((calc / 100) as u8 as char, (calc % 100) as u8 as char, true, 0), edges);
 			} else if let CellType::WarpOuter(ix) = cell {
 				let mut edges = Graph::find_edges_for(&map.cell_map, *coords);
 				if edges.len() == 0 {
 					panic!("Disconnected node {:?}", coords);
 				}
 				let calc = *ix;
-				edges.insert(GraphType::Warp((calc / 100) as u8 as char, (calc % 100) as u8 as char, true), 1);
-				graph.insert(GraphType::Warp((calc / 100) as u8 as char, (calc % 100) as u8 as char, false), edges);
+				edges.insert(GraphType::Warp((calc / 100) as u8 as char, (calc % 100) as u8 as char, true, 0), 1);
+				graph.insert(GraphType::Warp((calc / 100) as u8 as char, (calc % 100) as u8 as char, false, 0), edges);
 			}
 		}
 		let goal_count = map.cell_map.iter().filter(|f| match (*f).1 {
@@ -147,11 +147,11 @@ impl Graph {
 							}
 							CellType::WarpInner(ix) => {
 								let calc = *ix;
-								retme.insert(GraphType::Warp((calc / 100) as u8 as char, (calc % 100) as u8 as char, true), steps + 1);
+								retme.insert(GraphType::Warp((calc / 100) as u8 as char, (calc % 100) as u8 as char, true, 0), steps + 1);
 							}
 							CellType::WarpOuter(ix) => {
 								let calc = *ix;
-								retme.insert(GraphType::Warp((calc / 100) as u8 as char, (calc % 100) as u8 as char, false), steps + 1);
+								retme.insert(GraphType::Warp((calc / 100) as u8 as char, (calc % 100) as u8 as char, false, 0), steps + 1);
 							}
 							CellType::Space => {
 								queue.push_back((next, steps + 1, Option::Some(nj)));
@@ -164,6 +164,103 @@ impl Graph {
 		}
 
 		return retme;
+	}
+
+	pub fn make_deep(self, depth: usize) -> Graph{
+		//OK, we need to turn all the inner ones to start mapping from 0 -> themselves at 1 on outer
+		let mut ig: Map<GraphType, Map<GraphType, usize>> = Map::new();
+		self.graph.keys()
+			.for_each(|k|{
+				match k {
+					GraphType::Warp(chA, chB, is_down, _) => {
+						if *is_down {
+							//OK, so these can exist at 0 but not to the depth entry
+							let edges = self.graph.get(k).unwrap();
+							for my_depth in 0..depth{
+								let my_type = GraphType::Warp(chA.clone(), chB.clone(), is_down.clone(), my_depth);
+								let mut my_edges: Map<GraphType, usize> = Map::new();
+								edges
+									.iter()
+									.for_each(|(&wasType, &wasDist)|{
+										match wasType {
+											GraphType::Goal(_) if my_depth == 0 => {
+												my_edges.insert(wasType, wasDist);
+											}
+											GraphType::Start(_) if my_depth == 0 => {
+												my_edges.insert(wasType, wasDist);
+											}
+											GraphType::Warp(chC, chD, oth_is_down, _) => {
+												if (oth_is_down && my_depth != (depth -1)) || chC != *chA || chD != *chB {
+													//OK, same but with my depth
+													let then_type = GraphType::Warp(chC, chD, oth_is_down, my_depth);
+													my_edges.insert(then_type, wasDist);
+												}else if wasDist == 1{
+													//OK, link to the other me but like, down 1
+													let then_type = GraphType::Warp(chA.clone(), chB.clone(), !(is_down.clone()), if *is_down {my_depth + 1}else{my_depth - 1});
+													my_edges.insert(then_type, 1);
+												}else if wasDist == 2 {
+													//
+												}else{
+													panic!("Uh, no idea what to do with {:?}", wasType);
+												}
+											}
+											_ => {}
+										}
+									});
+								ig.insert(my_type, my_edges);
+							}
+						}else{
+							//OK, so up cannot exist at 0 but can exist at the depth level
+							let edges = self.graph.get(k).unwrap();
+							for my_depth in 1..=depth{
+								let my_type = GraphType::Warp(chA.clone(), chB.clone(), is_down.clone(), my_depth);
+								let mut my_edges: Map<GraphType, usize> = Map::new();
+								edges
+									.iter()
+									.for_each(|(&wasType, &wasDist)|{
+										match wasType {
+											GraphType::Warp(chC, chD, oth_is_down, _) => {
+												if oth_is_down || chC != *chA || chD != *chB {
+													//OK, same but with my depth
+													let then_type = GraphType::Warp(chC, chD, oth_is_down, my_depth);
+													my_edges.insert(then_type, wasDist);
+												}else if wasDist == 1{
+													//OK, link to the other me but like, down 1
+													let then_type = GraphType::Warp(chA.clone(), chB.clone(), !(is_down.clone()), if *is_down {my_depth + 1}else{my_depth - 1});
+													my_edges.insert(then_type, 1);
+												}else if wasDist == 2 {
+														//
+													}
+												else{
+													panic!("Uh, no idea what to do with {:?}", wasType);
+												}
+											}
+											_ => {}
+										}
+									});
+								ig.insert(my_type, my_edges);
+							}
+						}
+					},
+					_ => {
+						ig.insert(k.clone(), Map::new());
+						self.graph.get(k)
+							.unwrap()
+							.iter()
+							.for_each(|(innerType, innerSize)| {
+								ig.get_mut(&k.clone())
+									.unwrap()
+									.insert(innerType.clone(), innerSize.clone());
+							});
+					}
+				}
+			});
+		return Graph{
+			graph: ig,
+			goal_count: 1,
+			start_count: 1,
+			barrier_count: 0,
+		}
 	}
 
 	pub fn print(&self) {
@@ -244,7 +341,12 @@ impl Graph {
 					if current_steps > seen_weights[&current_tile] {
 						continue 'heappop;
 					}
-					'graph_ctile: for (&next, &steps) in self.graph.get(&current_tile).unwrap().iter() {
+					let mut curr_tile_map_op = self.graph.get(&current_tile);
+					let empty_map: Map<GraphType, usize> = Map::new();
+					if let None = curr_tile_map_op{
+						curr_tile_map_op = Option::Some(&empty_map);
+					}
+					'graph_ctile: for (&next, &steps) in curr_tile_map_op.unwrap().iter() {
 						let mut ndepth: usize = curr_depth.clone();
 						match next {
 							GraphType::Barrier(v) => {
@@ -265,9 +367,9 @@ impl Graph {
 							GraphType::Start(_) => {
 								continue 'graph_ctile;
 							}
-							GraphType::Warp(_, _, down) => {
+							GraphType::Warp(_, _, down, num) => {
 								match current_tile {
-									GraphType::Warp(_, _, lmao) if lmao != down => {}
+									GraphType::Warp(_, _, lmao, num) if lmao != down => {}
 									_ => {
 										if depth_track && !down && ndepth == 0 {
 											continue 'graph_ctile;
@@ -302,9 +404,9 @@ impl Graph {
 					let mut new_visited: Set<GraphType> = current.visited.clone();
 					let mut new_robots = current.robots.clone();
 					match next_node {
-						GraphType::Warp(_, _, down) => {
+						GraphType::Warp(_, _, down, num) => {
 							match robo_tile {
-								GraphType::Warp(_, _, lmao) if lmao != down => {}
+								GraphType::Warp(_, _, lmao, num) if lmao != down => {}
 								_ => {
 									if depth_track {
 										if curr_depth == 0 && !down {

@@ -6,7 +6,8 @@ pub enum CellType {
 	Goal(char),
 	Start(char),
 	WarpInner(u16),
-	WarpOuter(u16)
+	WarpOuter(u16),
+	Items
 }
 
 impl CellType {}

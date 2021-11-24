@@ -1,0 +1,21 @@
+
+   ██    
+  █* █   
+ █ *█    
+  ██*█ █ 
+ █ *  █P█
+█**██  p█
+ ███ ███ 
+
+{
+
+Coords { x: -1, y: 1 }: "asterisk",
+Coords { x: 0, y: 1 }: "boulder",
+Coords { x: 1, y: -3 }: "prime number",
+Coords { x: 1, y: -2 }: "mutex",
+Coords { x: 1, y: 0 }: "candy cane",
+Coords { x: 1, y: 1 }: "food ration",
+Coords { x: 2, y: -1 }: "loom"
+}
+Part1: 
+Part2: 

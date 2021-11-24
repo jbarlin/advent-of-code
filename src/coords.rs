@@ -7,6 +7,15 @@ pub struct Coords {
 	pub y: NumType,
 }
 
+impl Default for Coords{
+	fn default() -> Self {
+		Coords{
+			x: 0,
+			y: 0
+		}
+	}
+}
+
 impl Coords {
 	pub fn move_direction(&self, d: Direction) -> Coords {
 		let change = d.to_change();

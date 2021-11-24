@@ -70,7 +70,7 @@ impl Opcode {
 	}
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct IntCodeVM {
 	pub memory: Memory,
 	pub register: usize,
@@ -79,6 +79,22 @@ pub struct IntCodeVM {
 	pub relative: NumType,
 	input: Rc<RefCell<VecDeque<NumType>>>,
 	output: Rc<RefCell<VecDeque<NumType>>>,
+}
+
+impl Clone for IntCodeVM{
+	fn clone(&self) -> Self {
+		let inp: VecDeque<NumType> = VecDeque::new();
+		let out: VecDeque<NumType> = VecDeque::new();
+		Self {
+			memory: self.memory.clone(),
+			register: self.register.clone(),
+			relative: self.relative.clone(),
+			state: self.state.clone(),
+			mode: self.mode.clone(),
+			input: Rc::new(RefCell::new(inp)),
+			output: Rc::new(RefCell::new(out))
+		}
+	}
 }
 
 fn safer_unsigned_add(u: usize, i: NumType) -> usize{
